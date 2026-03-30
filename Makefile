@@ -1,4 +1,4 @@
-.PHONY: help setup setup-dev test validate demo demo-auto deploy deploy-demo visualizer reset lint lint-fix clean
+.PHONY: help setup setup-dev test validate demo demo-auto deploy deploy-demo visualizer reset lint lint-fix clean aqlize
 
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -40,6 +40,9 @@ lint: ## Run linter
 
 lint-fix: ## Run linter with auto-fix
 	ruff check --fix src/ demos/ tools/
+
+aqlize: ## Natural language → AQL via AQLizer (Q="your question")
+	PYTHONPATH=. python3 scripts/aqlizer_demo.py aqlize "$(Q)"
 
 clean: ## Remove generated files and caches
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
