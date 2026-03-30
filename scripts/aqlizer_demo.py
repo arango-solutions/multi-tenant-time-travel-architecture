@@ -26,13 +26,16 @@ import ast
 import json
 import logging
 import os
+import re
 import sys
 import textwrap
+from pathlib import Path
 
 import requests
 from dotenv import load_dotenv
 
-load_dotenv()
+ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
+load_dotenv(ENV_PATH)
 
 log = logging.getLogger("aqlizer_demo")
 
@@ -49,21 +52,39 @@ def _require_env(name: str) -> str:
     return value
 
 
+def _update_env_file(key: str, value: str) -> None:
+    """Update or append a key=value pair in the .env file."""
+    if not ENV_PATH.exists():
+        ENV_PATH.write_text(f"{key}={value}\n")
+        return
+
+    text = ENV_PATH.read_text()
+    pattern = re.compile(rf"^{re.escape(key)}=.*$", re.MULTILINE)
+    if pattern.search(text):
+        text = pattern.sub(f"{key}={value}", text)
+    else:
+        text = text.rstrip("\n") + f"\n{key}={value}\n"
+    ENV_PATH.write_text(text)
+    os.environ[key] = value
+
+
 def _base_url() -> str:
     endpoint = _require_env("ARANGO_ENDPOINT")
     return endpoint.rstrip("/")
 
 
-def _get_config(require_service_id: bool = True):
+def _get_config(require_service_id: bool = True, service_id_override: str = None):
     base = _base_url()
     username = _require_env("ARANGO_USERNAME")
     password = _require_env("ARANGO_PASSWORD")
 
-    service_id = os.getenv("AQLIZER_SERVICE_ID", "").strip()
+    service_id = service_id_override or os.getenv("AQLIZER_SERVICE_ID", "").strip()
     if require_service_id and not service_id:
         log.error(
-            "AQLIZER_SERVICE_ID is not set in .env.  "
-            "Run 'python scripts/aqlizer_demo.py deploy' first to create a service."
+            "AQLIZER_SERVICE_ID is not set.  Either:\n"
+            "  - Run 'python scripts/aqlizer_demo.py deploy' to create a service\n"
+            "  - Pass --service-id <id> on the command line\n"
+            "  - Set AQLIZER_SERVICE_ID in .env"
         )
         sys.exit(1)
 
@@ -148,8 +169,9 @@ def cmd_deploy(cfg: dict, jwt: str, model: str) -> None:
     print(f"  serviceId : {full_id}")
     print(f"  short ID  : {short_id}")
     print(f"  status    : {status}")
-    print(f"\nSet this in your .env file:")
-    print(f"  AQLIZER_SERVICE_ID={short_id}")
+
+    _update_env_file("AQLIZER_SERVICE_ID", short_id)
+    print(f"\nUpdated .env → AQLIZER_SERVICE_ID={short_id}")
 
 
 def cmd_health(cfg: dict, jwt: str) -> None:
@@ -328,6 +350,10 @@ def build_parser() -> argparse.ArgumentParser:
         "-v", "--verbose", action="store_true",
         help="enable verbose / debug logging on stderr",
     )
+    parser.add_argument(
+        "--service-id", default=None,
+        help="override AQLIZER_SERVICE_ID from .env",
+    )
 
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -367,7 +393,10 @@ def main() -> None:
     )
 
     need_service_id = args.command != "deploy"
-    cfg = _get_config(require_service_id=need_service_id)
+    cfg = _get_config(
+        require_service_id=need_service_id,
+        service_id_override=args.service_id,
+    )
     jwt = obtain_jwt(cfg["base_url"], cfg["username"], cfg["password"])
 
     if args.command == "deploy":
