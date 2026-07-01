@@ -1,0 +1,29 @@
+@config "../tailwind.config.js";
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  background: #020617;
+  color: #e2e8f0;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent 32rem),
+    radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.12), transparent 32rem),
+    #020617;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}

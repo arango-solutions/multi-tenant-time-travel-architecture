@@ -27,10 +27,27 @@ That's it. The interactive walkthrough guides you through everything with pauses
 
 See [DEMO_QUICK_START.md](DEMO_QUICK_START.md) for a one-page presenter cheat sheet, or [docs/PRESENTER_GUIDE.md](docs/PRESENTER_GUIDE.md) for a detailed handoff guide.
 
+### Interactive Frontend
+
+The repo includes a React + TypeScript + Tailwind frontend for exploring point-in-time graph snapshots. The frontend calls a local FastAPI service, which runs temporal AQL against the live ArangoDB database configured in `.env`.
+
+```bash
+# Terminal 1: start the API
+make api
+
+# Terminal 2: start the frontend
+cd frontend
+npm install
+npm run dev
+```
+
+Open the Vite URL printed by `npm run dev`, choose a tenant, and move the slider to query graph state at a specific Unix timestamp. Device/software nodes carry the active version at the selected time, while alert nodes appear or disappear based on their temporal validity.
+
 ### Available Make Targets
 
 | Command | Description |
 |---------|-------------|
+| `make api` | Run temporal graph API |
 | `make demo` | Run interactive demo (recommended) |
 | `make demo-auto` | Run auto-advancing demo |
 | `make deploy` | Deploy database (production TTL) |
