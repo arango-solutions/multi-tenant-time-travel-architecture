@@ -5,6 +5,22 @@ export type Tenant = {
   scaleFactor?: number | null
 }
 
+export type LoginRequest = {
+  endpoint: string
+  username: string
+  password: string
+}
+
+export type LoginResponse = {
+  sessionId: string
+  endpoint: string
+  username: string
+}
+
+export type DatabaseInfo = {
+  name: string
+}
+
 export type TimeRange = {
   min: number
   max: number
@@ -52,25 +68,72 @@ export type GraphPayload = {
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) || 'http://localhost:8000'
 
-export async function fetchTenants(): Promise<Tenant[]> {
-  return fetchJson<Tenant[]>('/api/tenants')
+export async function login(payload: LoginRequest): Promise<LoginResponse> {
+  return fetchJson<LoginResponse>('/api/login', {
+    method: 'POST',
+    body: payload,
+  })
 }
 
-export async function fetchTimeRange(tenantId: string): Promise<TimeRange> {
-  return fetchJson<TimeRange>(`/api/time-range?tenant=${encodeURIComponent(tenantId)}`)
+export async function logout(sessionId: string): Promise<void> {
+  await fetchJson<{ ok: boolean }>('/api/logout', {
+    method: 'POST',
+    sessionId,
+  })
 }
 
-export async function fetchGraph(tenantId: string, timestamp: number): Promise<GraphPayload> {
+export async function fetchDatabases(sessionId: string): Promise<DatabaseInfo[]> {
+  const databaseNames = await fetchJson<string[]>('/api/databases', { sessionId })
+  return databaseNames.map((name) => ({ name }))
+}
+
+export async function selectDatabase(sessionId: string, databaseName: string): Promise<void> {
+  await fetchJson<{ databaseName: string }>('/api/database', {
+    method: 'POST',
+    sessionId,
+    body: { databaseName },
+  })
+}
+
+export async function fetchTenants(sessionId: string): Promise<Tenant[]> {
+  return fetchJson<Tenant[]>('/api/tenants', { sessionId })
+}
+
+export async function fetchTimeRange(sessionId: string, tenantId: string): Promise<TimeRange> {
+  return fetchJson<TimeRange>(`/api/time-range?tenant=${encodeURIComponent(tenantId)}`, { sessionId })
+}
+
+export async function fetchGraph(sessionId: string, tenantId: string, timestamp: number): Promise<GraphPayload> {
   const params = new URLSearchParams({
     tenant: tenantId,
     t: String(timestamp),
   })
 
-  return fetchJson<GraphPayload>(`/api/graph?${params.toString()}`)
+  return fetchJson<GraphPayload>(`/api/graph?${params.toString()}`, { sessionId })
 }
 
-async function fetchJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`)
+type RequestOptions = {
+  method?: 'GET' | 'POST'
+  sessionId?: string
+  body?: unknown
+}
+
+async function fetchJson<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const headers = new Headers()
+
+  if (options.body !== undefined) {
+    headers.set('Content-Type', 'application/json')
+  }
+
+  if (options.sessionId) {
+    headers.set('X-Session-Id', options.sessionId)
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: options.method ?? 'GET',
+    headers,
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+  })
 
   if (!response.ok) {
     const detail = await readErrorDetail(response)

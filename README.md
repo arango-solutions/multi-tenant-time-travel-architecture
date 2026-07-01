@@ -29,7 +29,7 @@ See [DEMO_QUICK_START.md](DEMO_QUICK_START.md) for a one-page presenter cheat sh
 
 ### Interactive Frontend
 
-The repo includes a React + TypeScript + Tailwind frontend for exploring point-in-time graph snapshots. The frontend calls a local FastAPI service, which runs temporal AQL against the live ArangoDB database configured in `.env`.
+The repo includes a React + TypeScript + Tailwind frontend for exploring point-in-time graph snapshots. The frontend calls a local FastAPI service; from the browser, log in with an ArangoDB endpoint, username, and password, choose an accessible database, then choose a tenant from that database.
 
 ```bash
 # Terminal 1: start the API
@@ -41,7 +41,7 @@ npm install
 npm run dev
 ```
 
-Open the Vite URL printed by `npm run dev`, choose a tenant, and move the slider to query graph state at a specific Unix timestamp. Device/software nodes carry the active version at the selected time, while alert nodes appear or disappear based on their temporal validity.
+Open the Vite URL printed by `npm run dev`, connect to your ArangoDB server, choose a database, choose a tenant, and move the slider to query graph state at a specific Unix timestamp. Credentials are held only in the local FastAPI backend's in-memory session store; the browser keeps an opaque session token. Device/software nodes carry the active version at the selected time, while alert nodes appear or disappear based on their temporal validity.
 
 ### Available Make Targets
 
