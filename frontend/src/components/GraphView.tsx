@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import ForceGraph3D from 'react-force-graph-3d'
-import type { GraphNode, GraphPayload } from '../api'
+import type { GraphLink, GraphNode, GraphPayload } from '../api'
 
 type GraphViewProps = {
   graph: GraphPayload | null
   loading?: boolean
+  isPlaying?: boolean
+  resetKey?: string | null
 }
 
 const NODE_COLORS: Record<GraphNode['group'], string> = {
@@ -14,8 +16,15 @@ const NODE_COLORS: Record<GraphNode['group'], string> = {
   alert: '#fb7185',
 }
 
-export function GraphView({ graph, loading = false }: GraphViewProps) {
+const DIM_NODE_COLOR = '#1e293b'
+const DIM_LINK_COLOR = 'rgba(148, 163, 184, 0.06)'
+const DEFAULT_LINK_COLOR = 'rgba(148, 163, 184, 0.28)'
+const HIGHLIGHT_LINK_COLOR = 'rgba(148, 163, 184, 0.85)'
+
+export function GraphView({ graph, loading = false, isPlaying = false, resetKey = null }: GraphViewProps) {
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null)
+  const [focusNodeId, setFocusNodeId] = useState<string | null>(null)
+  const [highlightedIds, setHighlightedIds] = useState<Set<string>>(() => new Set())
   const graphData = useMemo(
     () => ({
       nodes: graph?.nodes ?? [],
@@ -23,6 +32,71 @@ export function GraphView({ graph, loading = false }: GraphViewProps) {
     }),
     [graph],
   )
+  const hasFocus = focusNodeId !== null
+
+  const clearFocus = useCallback(() => {
+    setSelectedNode(null)
+    setFocusNodeId(null)
+    setHighlightedIds(new Set())
+  }, [])
+
+  const handleCloseDetail = useCallback(() => {
+    setSelectedNode(null)
+  }, [])
+
+  const handleNodeClick = useCallback(
+    (node: unknown) => {
+      const graphNode = node as GraphNode
+      const isAlreadyHighlighted = focusNodeId !== null && highlightedIds.has(graphNode.id)
+
+      setSelectedNode(graphNode)
+
+      if (isAlreadyHighlighted) {
+        return
+      }
+
+      setFocusNodeId(graphNode.id)
+      setHighlightedIds(new Set([graphNode.id]))
+    },
+    [focusNodeId, highlightedIds],
+  )
+
+  useEffect(() => {
+    clearFocus()
+  }, [clearFocus, resetKey])
+
+  useEffect(() => {
+    if (!graph || !isPlaying || !focusNodeId) {
+      return
+    }
+
+    setHighlightedIds((currentIds) => {
+      if (currentIds.size === 0) {
+        return currentIds
+      }
+
+      const nextIds = new Set(currentIds)
+
+      graph.links.forEach((link) => {
+        const sourceId = getEndpointId(link.source)
+        const targetId = getEndpointId(link.target)
+
+        if (!sourceId || !targetId) {
+          return
+        }
+
+        if (currentIds.has(sourceId)) {
+          nextIds.add(targetId)
+        }
+
+        if (currentIds.has(targetId)) {
+          nextIds.add(sourceId)
+        }
+      })
+
+      return nextIds.size === currentIds.size ? currentIds : nextIds
+    })
+  }, [focusNodeId, graph, isPlaying])
 
   return (
     <section className="relative min-h-[620px] overflow-hidden rounded-3xl border border-slate-800 bg-slate-950/70 shadow-2xl shadow-slate-950/50">
@@ -34,6 +108,20 @@ export function GraphView({ graph, loading = false }: GraphViewProps) {
           <Metric label="Locations" value={graph?.counts.locations ?? 0} color="text-emerald-300" />
           <Metric label="Alerts" value={graph?.counts.alerts ?? 0} color="text-rose-300" />
         </div>
+        {focusNodeId ? (
+          <>
+            <p className="mt-3 max-w-48 text-xs leading-5 text-cyan-200">
+              {isPlaying ? 'Playing traces connections over time.' : 'Press Play to trace connections over time.'}
+            </p>
+            <button
+              type="button"
+              className="mt-3 rounded-full border border-slate-700 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-cyan-300 hover:text-cyan-200"
+              onClick={clearFocus}
+            >
+              Reset highlight
+            </button>
+          </>
+        ) : null}
       </div>
 
       {loading ? (
@@ -48,18 +136,38 @@ export function GraphView({ graph, loading = false }: GraphViewProps) {
         <ForceGraph3D
           graphData={graphData}
           backgroundColor="#020617"
-          linkColor={() => 'rgba(148, 163, 184, 0.28)'}
+          linkColor={(link) => {
+            if (!hasFocus) {
+              return DEFAULT_LINK_COLOR
+            }
+
+            return isLinkHighlighted(link as GraphLink, highlightedIds) ? HIGHLIGHT_LINK_COLOR : DIM_LINK_COLOR
+          }}
           linkOpacity={0.35}
-          linkDirectionalParticles={1}
+          linkDirectionalParticles={(link) => (isLinkHighlighted(link as GraphLink, highlightedIds) ? 2 : 0)}
           linkDirectionalParticleSpeed={0.004}
           linkDirectionalParticleWidth={1.6}
-          linkWidth={1}
-          nodeColor={(node) => NODE_COLORS[(node as GraphNode).group]}
+          linkWidth={(link) => (isLinkHighlighted(link as GraphLink, highlightedIds) ? 2 : 1)}
+          nodeColor={(node) => {
+            const graphNode = node as GraphNode
+
+            if (!hasFocus) {
+              return NODE_COLORS[graphNode.group]
+            }
+
+            return highlightedIds.has(graphNode.id) ? NODE_COLORS[graphNode.group] : DIM_NODE_COLOR
+          }}
           nodeLabel={(node) => (node as GraphNode).label}
           nodeOpacity={0.92}
           nodeResolution={18}
-          nodeVal={(node) => ((node as GraphNode).group === 'alert' ? 7 : 5)}
-          onNodeClick={(node) => setSelectedNode(node as GraphNode)}
+          nodeVal={(node) => {
+            const graphNode = node as GraphNode
+            const baseSize = graphNode.group === 'alert' ? 7 : 5
+
+            return highlightedIds.has(graphNode.id) ? baseSize * 1.4 : baseSize
+          }}
+          onNodeClick={handleNodeClick}
+          onBackgroundClick={clearFocus}
         />
       ) : (
         <div className="grid min-h-[620px] place-items-center px-6 text-center">
@@ -72,7 +180,7 @@ export function GraphView({ graph, loading = false }: GraphViewProps) {
         </div>
       )}
 
-      {selectedNode ? <NodeDetail node={selectedNode} onClose={() => setSelectedNode(null)} /> : null}
+      {selectedNode ? <NodeDetail node={selectedNode} onClose={handleCloseDetail} /> : null}
     </section>
   )
 }
@@ -84,6 +192,17 @@ function Metric({ label, value, color }: { label: string; value: number; color: 
       <div className="text-xs text-slate-500">{label}</div>
     </div>
   )
+}
+
+function isLinkHighlighted(link: GraphLink, highlightedIds: Set<string>) {
+  const sourceId = getEndpointId(link.source)
+  const targetId = getEndpointId(link.target)
+
+  return Boolean(sourceId && targetId && highlightedIds.has(sourceId) && highlightedIds.has(targetId))
+}
+
+function getEndpointId(endpoint: string | GraphNode) {
+  return typeof endpoint === 'string' ? endpoint : endpoint.id
 }
 
 function NodeDetail({ node, onClose }: { node: GraphNode; onClose: () => void }) {

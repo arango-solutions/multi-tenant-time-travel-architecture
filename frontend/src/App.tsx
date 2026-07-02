@@ -17,6 +17,7 @@ function App() {
   const [selectedTime, setSelectedTime] = useState<number | null>(null)
   const [debouncedTime, setDebouncedTime] = useState<number | null>(null)
   const [graph, setGraph] = useState<GraphPayload | null>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
   const [loadingLogin, setLoadingLogin] = useState(false)
   const [loadingDatabases, setLoadingDatabases] = useState(false)
   const [loadingTenants, setLoadingTenants] = useState(false)
@@ -37,6 +38,7 @@ function App() {
     setSelectedTime(null)
     setDebouncedTime(null)
     setGraph(null)
+    setIsPlaying(false)
 
     fetchTenants(session.sessionId)
       .then((tenantList) => {
@@ -264,6 +266,8 @@ function App() {
                     range={timeRange}
                     value={selectedTime}
                     onChange={handleTimeChange}
+                    isPlaying={isPlaying}
+                    onPlayingChange={setIsPlaying}
                     disabled={!selectedTenantId || loadingGraph}
                   />
 
@@ -281,7 +285,7 @@ function App() {
             </aside>
 
             {selectedDatabaseName ? (
-              <GraphView graph={graph} loading={loadingGraph} />
+              <GraphView graph={graph} loading={loadingGraph} isPlaying={isPlaying} resetKey={selectedTenantId} />
             ) : (
               <section className="grid min-h-[620px] place-items-center rounded-3xl border border-slate-800 bg-slate-950/70 px-6 text-center">
                 <div>
@@ -309,6 +313,7 @@ function App() {
     setSelectedTime(null)
     setDebouncedTime(null)
     setGraph(null)
+    setIsPlaying(false)
     setError(null)
     setLoadingDatabases(false)
     setLoadingTenants(false)
