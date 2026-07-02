@@ -8,8 +8,12 @@ type TimeSliderProps = {
   disabled?: boolean
 }
 
+const BASE_INTERVAL_MS = 3000
+const SPEED_PRESETS = [0.5, 1, 2, 4]
+
 export function TimeSlider({ range, value, onChange, disabled = false }: TimeSliderProps) {
   const [isPlaying, setIsPlaying] = useState(false)
+  const [speed, setSpeed] = useState(1)
   const step = useMemo(() => {
     if (!range) {
       return 3600
@@ -17,6 +21,7 @@ export function TimeSlider({ range, value, onChange, disabled = false }: TimeSli
 
     return Math.max(3600, Math.floor((range.max - range.min) / 160))
   }, [range])
+  const intervalMs = Math.round(BASE_INTERVAL_MS / speed)
 
   useEffect(() => {
     if (!isPlaying || !range || value === null) {
@@ -26,10 +31,10 @@ export function TimeSlider({ range, value, onChange, disabled = false }: TimeSli
     const timerId = window.setInterval(() => {
       const nextValue = value + step > range.max ? range.min : value + step
       onChange(nextValue)
-    }, 900)
+    }, intervalMs)
 
     return () => window.clearInterval(timerId)
-  }, [isPlaying, onChange, range, step, value])
+  }, [intervalMs, isPlaying, onChange, range, step, value])
 
   if (!range || value === null) {
     return (
@@ -51,14 +56,37 @@ export function TimeSlider({ range, value, onChange, disabled = false }: TimeSli
           <p className="mt-1 text-lg font-semibold text-slate-100">{formatTimestamp(value)}</p>
           <p className="mt-1 text-xs text-slate-500">Unix {sliderValue}</p>
         </div>
-        <button
-          type="button"
-          className="rounded-full border border-cyan-400/40 px-4 py-2 text-sm font-semibold text-cyan-200 transition hover:border-cyan-300 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50"
-          onClick={() => setIsPlaying((current) => !current)}
-          disabled={disabled}
-        >
-          {isPlaying ? 'Pause' : 'Play'}
-        </button>
+        <div className="flex flex-col items-end gap-2">
+          <button
+            type="button"
+            className="rounded-full border border-cyan-400/40 px-4 py-2 text-sm font-semibold text-cyan-200 transition hover:border-cyan-300 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={() => setIsPlaying((current) => !current)}
+            disabled={disabled}
+          >
+            {isPlaying ? 'Pause' : 'Play'}
+          </button>
+          <div className="flex rounded-full border border-slate-700 bg-slate-950/70 p-1">
+            {SPEED_PRESETS.map((preset) => {
+              const isActive = preset === speed
+
+              return (
+                <button
+                  key={preset}
+                  type="button"
+                  className={`rounded-full px-2.5 py-1 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                    isActive
+                      ? 'bg-cyan-300 text-slate-950'
+                      : 'text-slate-400 hover:bg-slate-800 hover:text-cyan-200'
+                  }`}
+                  onClick={() => setSpeed(preset)}
+                  disabled={disabled}
+                >
+                  {formatSpeedLabel(preset)}
+                </button>
+              )
+            })}
+          </div>
+        </div>
       </div>
 
       <input
@@ -92,4 +120,8 @@ function formatDateOnly(timestamp: number) {
     month: 'short',
     day: 'numeric',
   }).format(new Date(timestamp * 1000))
+}
+
+function formatSpeedLabel(speed: number) {
+  return `${speed}x`
 }

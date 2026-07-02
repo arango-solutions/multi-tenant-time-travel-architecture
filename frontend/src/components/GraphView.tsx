@@ -1,15 +1,10 @@
 import { useMemo, useState } from 'react'
-import ForceGraph2D from 'react-force-graph-2d'
+import ForceGraph3D from 'react-force-graph-3d'
 import type { GraphNode, GraphPayload } from '../api'
 
 type GraphViewProps = {
   graph: GraphPayload | null
   loading?: boolean
-}
-
-type RenderableNode = GraphNode & {
-  x?: number
-  y?: number
 }
 
 const NODE_COLORS: Record<GraphNode['group'], string> = {
@@ -50,24 +45,20 @@ export function GraphView({ graph, loading = false }: GraphViewProps) {
       ) : null}
 
       {graphData.nodes.length > 0 ? (
-        <ForceGraph2D
+        <ForceGraph3D
           graphData={graphData}
-          backgroundColor="rgba(2, 6, 23, 0)"
+          backgroundColor="#020617"
           linkColor={() => 'rgba(148, 163, 184, 0.28)'}
+          linkOpacity={0.35}
           linkDirectionalParticles={1}
           linkDirectionalParticleSpeed={0.004}
-          linkDirectionalParticleWidth={1.4}
+          linkDirectionalParticleWidth={1.6}
           linkWidth={1}
-          nodeCanvasObject={(node, canvasContext, globalScale) =>
-            paintNode(node as RenderableNode, canvasContext, globalScale)
-          }
-          nodePointerAreaPaint={(node, color, canvasContext) => {
-            const renderableNode = node as RenderableNode
-            canvasContext.fillStyle = color
-            canvasContext.beginPath()
-            canvasContext.arc(renderableNode.x ?? 0, renderableNode.y ?? 0, 9, 0, 2 * Math.PI, false)
-            canvasContext.fill()
-          }}
+          nodeColor={(node) => NODE_COLORS[(node as GraphNode).group]}
+          nodeLabel={(node) => (node as GraphNode).label}
+          nodeOpacity={0.92}
+          nodeResolution={18}
+          nodeVal={(node) => ((node as GraphNode).group === 'alert' ? 7 : 5)}
           onNodeClick={(node) => setSelectedNode(node as GraphNode)}
         />
       ) : (
@@ -93,28 +84,6 @@ function Metric({ label, value, color }: { label: string; value: number; color: 
       <div className="text-xs text-slate-500">{label}</div>
     </div>
   )
-}
-
-function paintNode(node: RenderableNode, canvasContext: CanvasRenderingContext2D, globalScale: number) {
-  const label = node.label
-  const radius = node.group === 'alert' ? 7 : 5.5
-  const x = node.x ?? 0
-  const y = node.y ?? 0
-
-  canvasContext.beginPath()
-  canvasContext.arc(x, y, radius, 0, 2 * Math.PI, false)
-  canvasContext.fillStyle = NODE_COLORS[node.group]
-  canvasContext.shadowBlur = 12
-  canvasContext.shadowColor = NODE_COLORS[node.group]
-  canvasContext.fill()
-  canvasContext.shadowBlur = 0
-
-  const fontSize = Math.max(3.4, 11 / globalScale)
-  canvasContext.font = `${fontSize}px Inter, sans-serif`
-  canvasContext.textAlign = 'center'
-  canvasContext.textBaseline = 'top'
-  canvasContext.fillStyle = 'rgba(226, 232, 240, 0.9)'
-  canvasContext.fillText(label, x, y + radius + 2)
 }
 
 function NodeDetail({ node, onClose }: { node: GraphNode; onClose: () => void }) {
