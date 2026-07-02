@@ -5,12 +5,14 @@ import ForceGraph3D from 'react-force-graph-3d'
 import { AmbientLight, Color, DirectionalLight, Mesh, MeshPhongMaterial, SphereGeometry, Vector2 } from 'three'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import type { GraphLink, GraphNode, GraphPayload } from '../api'
+import { getTenantColor } from '../tenantColors'
 
 type GraphViewProps = {
   graph: GraphPayload | null
   loading?: boolean
   isPlaying?: boolean
   resetKey?: string | null
+  selectedTenantIds?: string[]
 }
 
 type ViewMode = '2d' | '3d'
@@ -37,7 +39,13 @@ const NODE_REL_SIZE = 4
 const MIN_GRAPH_WIDTH = 320
 const MIN_GRAPH_HEIGHT = 420
 
-export function GraphView({ graph, loading = false, isPlaying = false, resetKey = null }: GraphViewProps) {
+export function GraphView({
+  graph,
+  loading = false,
+  isPlaying = false,
+  resetKey = null,
+  selectedTenantIds = [],
+}: GraphViewProps) {
   const containerRef = useRef<HTMLElement | null>(null)
   const graph3dRef = useRef<ForceGraph3DMethods<GraphNode, GraphLink> | undefined>(undefined)
   const { width, height } = useElementSize(containerRef)
@@ -55,19 +63,27 @@ export function GraphView({ graph, loading = false, isPlaying = false, resetKey 
     [graph],
   )
   const degreeMap = useMemo(() => buildDegreeMap(graphData.links), [graphData.links])
+  const graphTenantIds = useMemo(() => {
+    const tenantIds = selectedTenantIds.length > 0 ? selectedTenantIds : graphData.nodes.map((node) => node.tenantId)
+
+    return tenantIds.filter((tenantId): tenantId is string => Boolean(tenantId))
+  }, [graphData.nodes, selectedTenantIds])
   const hasFocus = focusNodeId !== null
+  const shouldColorByTenant = graphTenantIds.length > 1
   const graphWidth = Math.max(width, MIN_GRAPH_WIDTH)
   const graphHeight = Math.max(height, MIN_GRAPH_HEIGHT)
 
   const getNodeColor = useCallback(
     (node: GraphNode) => {
+      const baseColor = shouldColorByTenant ? getTenantColor(node.tenantId, graphTenantIds) : NODE_COLORS[node.group]
+
       if (!hasFocus) {
-        return NODE_COLORS[node.group]
+        return baseColor
       }
 
-      return highlightedIds.has(node.id) ? NODE_COLORS[node.group] : DIM_NODE_COLOR
+      return highlightedIds.has(node.id) ? baseColor : DIM_NODE_COLOR
     },
-    [hasFocus, highlightedIds],
+    [graphTenantIds, hasFocus, highlightedIds, shouldColorByTenant],
   )
 
   const getNodeValue = useCallback(
@@ -290,6 +306,7 @@ export function GraphView({ graph, loading = false, isPlaying = false, resetKey 
           <Metric label="Locations" value={graph?.counts.locations ?? 0} color="text-emerald-300" />
           <Metric label="Alerts" value={graph?.counts.alerts ?? 0} color="text-rose-300" />
         </div>
+        <GraphLegend colorByTenant={shouldColorByTenant} tenantIds={graphTenantIds} />
         {focusNodeId ? (
           <>
             <p className="mt-3 max-w-48 text-xs leading-5 text-cyan-200">
@@ -448,6 +465,48 @@ function Metric({ label, value, color }: { label: string; value: number; color: 
     <div>
       <div className={`text-2xl font-semibold ${color}`}>{value}</div>
       <div className="text-xs text-slate-500">{label}</div>
+    </div>
+  )
+}
+
+function GraphLegend({ colorByTenant, tenantIds }: { colorByTenant: boolean; tenantIds: string[] }) {
+  if (colorByTenant) {
+    return (
+      <div className="mt-4 border-t border-slate-800 pt-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Tenant Colors</p>
+        <div className="mt-2 max-h-32 space-y-1 overflow-auto pr-1">
+          {tenantIds.map((tenantId) => (
+            <div key={tenantId} className="flex items-center gap-2 text-xs text-slate-300">
+              <span
+                className="h-2.5 w-2.5 shrink-0 rounded-full"
+                style={{ backgroundColor: getTenantColor(tenantId, tenantIds) }}
+              />
+              <span className="truncate">{tenantId}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-4 border-t border-slate-800 pt-3">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Node Types</p>
+      <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-300">
+        <GraphLegendItem color={NODE_COLORS.device} label="Device" />
+        <GraphLegendItem color={NODE_COLORS.software} label="Software" />
+        <GraphLegendItem color={NODE_COLORS.location} label="Location" />
+        <GraphLegendItem color={NODE_COLORS.alert} label="Alert" />
+      </div>
+    </div>
+  )
+}
+
+function GraphLegendItem({ color, label }: { color: string; label: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
+      <span>{label}</span>
     </div>
   )
 }

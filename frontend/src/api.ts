@@ -3,6 +3,7 @@ export type Tenant = {
   name: string
   description: string
   scaleFactor?: number | null
+  createdAt?: number | null
 }
 
 export type LoginRequest = {
@@ -38,6 +39,7 @@ export type GraphNode = {
   created?: number
   expired?: number
   activeAt: number
+  tenantId?: string
   data: Record<string, unknown>
 }
 
@@ -47,6 +49,7 @@ export type GraphLink = {
   target: string | GraphNode
   label: string
   relationship: string
+  tenantId?: string
   data: Record<string, unknown>
 }
 
@@ -99,17 +102,23 @@ export async function fetchTenants(sessionId: string): Promise<Tenant[]> {
   return fetchJson<Tenant[]>('/api/tenants', { sessionId })
 }
 
-export async function fetchTimeRange(sessionId: string, tenantId: string): Promise<TimeRange> {
-  return fetchJson<TimeRange>(`/api/time-range?tenant=${encodeURIComponent(tenantId)}`, { sessionId })
+export async function fetchTimeRange(sessionId: string, tenantIds: string[]): Promise<TimeRange> {
+  return fetchJson<TimeRange>(`/api/time-range?${buildTenantParams(tenantIds)}`, { sessionId })
 }
 
-export async function fetchGraph(sessionId: string, tenantId: string, timestamp: number): Promise<GraphPayload> {
-  const params = new URLSearchParams({
-    tenant: tenantId,
-    t: String(timestamp),
-  })
+export async function fetchGraph(sessionId: string, tenantIds: string[], timestamp: number): Promise<GraphPayload> {
+  const params = buildTenantParams(tenantIds)
+  params.set('t', String(timestamp))
 
   return fetchJson<GraphPayload>(`/api/graph?${params.toString()}`, { sessionId })
+}
+
+function buildTenantParams(tenantIds: string[]) {
+  const params = new URLSearchParams()
+
+  tenantIds.forEach((tenantId) => params.append('tenant', tenantId))
+
+  return params
 }
 
 type RequestOptions = {

@@ -5,6 +5,7 @@ import { DatabaseSelect } from './components/DatabaseSelect'
 import { GraphView } from './components/GraphView'
 import { LoginForm } from './components/LoginForm'
 import { TenantSelect } from './components/TenantSelect'
+import { TenantTimeline } from './components/TenantTimeline'
 import { TimeSlider } from './components/TimeSlider'
 
 function App() {
@@ -12,7 +13,7 @@ function App() {
   const [databases, setDatabases] = useState<DatabaseInfo[]>([])
   const [selectedDatabaseName, setSelectedDatabaseName] = useState<string | null>(null)
   const [tenants, setTenants] = useState<Tenant[]>([])
-  const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null)
+  const [selectedTenantIds, setSelectedTenantIds] = useState<string[]>([])
   const [timeRange, setTimeRange] = useState<TimeRange | null>(null)
   const [selectedTime, setSelectedTime] = useState<number | null>(null)
   const [debouncedTime, setDebouncedTime] = useState<number | null>(null)
@@ -23,6 +24,7 @@ function App() {
   const [loadingTenants, setLoadingTenants] = useState(false)
   const [loadingGraph, setLoadingGraph] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const selectedTenantKey = useMemo(() => selectedTenantIds.join('|'), [selectedTenantIds])
 
   useEffect(() => {
     if (!session || !selectedDatabaseName) {
@@ -33,7 +35,7 @@ function App() {
     setError(null)
     setLoadingTenants(true)
     setTenants([])
-    setSelectedTenantId(null)
+    setSelectedTenantIds([])
     setTimeRange(null)
     setSelectedTime(null)
     setDebouncedTime(null)
@@ -47,7 +49,7 @@ function App() {
         }
 
         setTenants(tenantList)
-        setSelectedTenantId(tenantList[0]?.id ?? null)
+        setSelectedTenantIds(tenantList[0] ? [tenantList[0].id] : [])
       })
       .catch((caughtError: unknown) => setError(toErrorMessage(caughtError)))
       .finally(() => {
@@ -62,7 +64,11 @@ function App() {
   }, [selectedDatabaseName, session])
 
   useEffect(() => {
-    if (!session || !selectedTenantId) {
+    if (!session || selectedTenantIds.length === 0) {
+      setTimeRange(null)
+      setSelectedTime(null)
+      setDebouncedTime(null)
+      setGraph(null)
       return undefined
     }
 
@@ -73,7 +79,7 @@ function App() {
     setDebouncedTime(null)
     setGraph(null)
 
-    fetchTimeRange(session.sessionId, selectedTenantId)
+    fetchTimeRange(session.sessionId, selectedTenantIds)
       .then((range) => {
         if (!isActive) {
           return
@@ -88,7 +94,7 @@ function App() {
     return () => {
       isActive = false
     }
-  }, [selectedTenantId, session])
+  }, [selectedTenantIds, selectedTenantKey, session])
 
   useEffect(() => {
     if (selectedTime === null) {
@@ -100,7 +106,7 @@ function App() {
   }, [selectedTime])
 
   useEffect(() => {
-    if (!session || !selectedTenantId || debouncedTime === null) {
+    if (!session || selectedTenantIds.length === 0 || debouncedTime === null) {
       return undefined
     }
 
@@ -108,7 +114,7 @@ function App() {
     setLoadingGraph(true)
     setError(null)
 
-    fetchGraph(session.sessionId, selectedTenantId, debouncedTime)
+    fetchGraph(session.sessionId, selectedTenantIds, debouncedTime)
       .then((snapshot) => {
         if (isActive) {
           setGraph(snapshot)
@@ -124,11 +130,11 @@ function App() {
     return () => {
       isActive = false
     }
-  }, [debouncedTime, selectedTenantId, session])
+  }, [debouncedTime, selectedTenantIds, selectedTenantKey, session])
 
-  const selectedTenant = useMemo(
-    () => tenants.find((tenant) => tenant.id === selectedTenantId) ?? null,
-    [selectedTenantId, tenants],
+  const selectedTenants = useMemo(
+    () => tenants.filter((tenant) => selectedTenantIds.includes(tenant.id)),
+    [selectedTenantIds, tenants],
   )
 
   const handleTimeChange = useCallback((timestamp: number) => {
@@ -144,6 +150,7 @@ function App() {
       setSession(nextSession)
       setSelectedDatabaseName(null)
       setTenants([])
+      setSelectedTenantIds([])
       setGraph(null)
       setTimeRange(null)
       setLoadingDatabases(true)
@@ -251,16 +258,22 @@ function App() {
                   <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
                     <TenantSelect
                       tenants={tenants}
-                      selectedTenantId={selectedTenantId}
-                      onChange={setSelectedTenantId}
+                      selectedTenantIds={selectedTenantIds}
+                      selectedTime={selectedTime}
+                      onChange={setSelectedTenantIds}
                       disabled={loadingTenants}
                     />
-                    {selectedTenant ? (
+                    {selectedTenants.length > 0 ? (
                       <p className="mt-3 text-sm leading-6 text-slate-400">
-                        {selectedTenant.description || `Scale factor ${selectedTenant.scaleFactor ?? 'unknown'}`}
+                        {selectedTenants.length === 1
+                          ? selectedTenants[0].description ||
+                            `Scale factor ${selectedTenants[0].scaleFactor ?? 'unknown'}`
+                          : `${selectedTenants.length} tenants selected for temporal overlay.`}
                       </p>
                     ) : null}
                   </section>
+
+                  <TenantTimeline tenants={tenants} selectedTime={selectedTime} selectedTenantIds={selectedTenantIds} />
 
                   <TimeSlider
                     range={timeRange}
@@ -268,7 +281,7 @@ function App() {
                     onChange={handleTimeChange}
                     isPlaying={isPlaying}
                     onPlayingChange={setIsPlaying}
-                    disabled={!selectedTenantId || loadingGraph}
+                    disabled={selectedTenantIds.length === 0 || loadingGraph}
                   />
 
                   <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
@@ -285,7 +298,13 @@ function App() {
             </aside>
 
             {selectedDatabaseName ? (
-              <GraphView graph={graph} loading={loadingGraph} isPlaying={isPlaying} resetKey={selectedTenantId} />
+              <GraphView
+                graph={graph}
+                loading={loadingGraph}
+                isPlaying={isPlaying}
+                resetKey={selectedTenantKey}
+                selectedTenantIds={selectedTenantIds}
+              />
             ) : (
               <section className="grid min-h-[520px] place-items-center rounded-3xl border border-slate-800 bg-slate-950/70 px-6 text-center lg:min-h-full">
                 <div>
@@ -308,7 +327,7 @@ function App() {
     setDatabases([])
     setSelectedDatabaseName(null)
     setTenants([])
-    setSelectedTenantId(null)
+    setSelectedTenantIds([])
     setTimeRange(null)
     setSelectedTime(null)
     setDebouncedTime(null)

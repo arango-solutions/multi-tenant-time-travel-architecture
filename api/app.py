@@ -45,10 +45,10 @@ class TemporalGraphService:
 
     def list_tenants(self, database: StandardDatabase) -> List[Dict[str, Any]]:
         registry = _load_tenant_registry()
-        tenant_ids = _execute_aql(database, TENANTS_QUERY)
+        tenant_rows = _execute_aql(database, TENANTS_QUERY)
 
-        if not tenant_ids:
-            tenant_ids = sorted(registry.keys())
+        if not tenant_rows:
+            tenant_rows = [{"tenantId": tenant_id, "createdAt": None} for tenant_id in sorted(registry.keys())]
 
         return [
             {
@@ -56,16 +56,17 @@ class TemporalGraphService:
                 "name": registry.get(tenant_id, {}).get("tenantName", tenant_id),
                 "description": registry.get(tenant_id, {}).get("tenantDescription", ""),
                 "scaleFactor": registry.get(tenant_id, {}).get("scaleFactor"),
+                "createdAt": created_at,
             }
-            for tenant_id in tenant_ids
+            for tenant_id, created_at in (_tenant_row_values(row) for row in tenant_rows)
             if tenant_id != "shared_taxonomy"
         ]
 
-    def get_time_range(self, database: StandardDatabase, tenant_id: str) -> Dict[str, float]:
+    def get_time_range(self, database: StandardDatabase, tenant_ids: List[str]) -> Dict[str, float]:
         results = _execute_aql(
             database,
             TIME_RANGE_QUERY,
-            {"tenant_id": tenant_id, "never_expires": NEVER_EXPIRES},
+            {"tenant_ids": tenant_ids, "never_expires": NEVER_EXPIRES},
         )
 
         if not results:
@@ -78,15 +79,15 @@ class TemporalGraphService:
             "now": float(row.get("now") or row.get("max") or DEFAULT_TIME_RANGE["now"]),
         }
 
-    def get_snapshot_graph(self, database: StandardDatabase, tenant_id: str, timestamp: float) -> Dict[str, Any]:
+    def get_snapshot_graph(self, database: StandardDatabase, tenant_ids: List[str], timestamp: float) -> Dict[str, Any]:
         results = _execute_aql(
             database,
             SNAPSHOT_QUERY,
-            {"tenant_id": tenant_id, "timestamp": timestamp},
+            {"tenant_ids": tenant_ids, "timestamp": timestamp},
         )
 
         if not results:
-            raise HTTPException(status_code=404, detail=f"No graph data found for tenant {tenant_id}")
+            raise HTTPException(status_code=404, detail=f"No graph data found for tenants {', '.join(tenant_ids)}")
 
         return build_snapshot_graph(results[0], timestamp)
 
@@ -200,21 +201,42 @@ def list_tenants(session: ArangoSession = Depends(_get_session)) -> List[Dict[st
 
 @app.get("/api/time-range")
 def get_time_range(
-    tenant: str = Query(..., min_length=1),
+    tenant: List[str] = Query(..., alias="tenant"),
     session: ArangoSession = Depends(_get_session),
 ) -> Dict[str, float]:
     database = _get_selected_database(session)
-    return graph_service.get_time_range(database, tenant)
+    tenant_ids = _clean_tenant_ids(tenant)
+    return graph_service.get_time_range(database, tenant_ids)
 
 
 @app.get("/api/graph")
 def get_graph(
-    tenant: str = Query(..., min_length=1),
+    tenant: List[str] = Query(..., alias="tenant"),
     t: float = Query(..., description="Unix timestamp in seconds"),
     session: ArangoSession = Depends(_get_session),
 ) -> Dict[str, Any]:
     database = _get_selected_database(session)
-    return graph_service.get_snapshot_graph(database, tenant, t)
+    tenant_ids = _clean_tenant_ids(tenant)
+    return graph_service.get_snapshot_graph(database, tenant_ids, t)
+
+
+def _clean_tenant_ids(tenant_ids: List[str]) -> List[str]:
+    cleaned_ids = [tenant_id.strip() for tenant_id in tenant_ids if tenant_id.strip()]
+
+    if not cleaned_ids:
+        raise HTTPException(status_code=400, detail="At least one tenant must be selected")
+
+    return cleaned_ids
+
+
+def _tenant_row_values(row: Any) -> tuple[str, Optional[float]]:
+    if isinstance(row, str):
+        return row, None
+
+    tenant_id = str(row.get("tenantId"))
+    created_at = row.get("createdAt")
+
+    return tenant_id, float(created_at) if created_at is not None else None
 
 
 def _load_tenant_registry() -> Dict[str, Dict[str, Any]]:
