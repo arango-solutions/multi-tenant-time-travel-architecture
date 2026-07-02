@@ -194,9 +194,9 @@ function App() {
   }, [session])
 
   return (
-    <main className="min-h-screen px-5 py-6 text-slate-100 lg:px-8">
-      <div className="mx-auto flex max-w-[1500px] flex-col gap-6">
-        <header className="flex flex-col justify-between gap-4 rounded-3xl border border-slate-800 bg-slate-950/70 p-6 shadow-2xl shadow-slate-950/30 lg:flex-row lg:items-end">
+    <main className="min-h-screen text-slate-100">
+      <div className="flex min-h-screen flex-col gap-4 px-3 py-3 sm:px-5 sm:py-4 lg:px-6">
+        <header className="flex flex-col justify-between gap-4 rounded-3xl border border-slate-800 bg-slate-950/70 p-4 shadow-2xl shadow-slate-950/30 lg:flex-row lg:items-end lg:p-5">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-300">ArangoDB Time Travel</p>
             <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white lg:text-5xl">
@@ -207,7 +207,7 @@ function App() {
               alert state at a specific point in time.
             </p>
           </div>
-          <div className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3 text-sm text-slate-300">
+          <div className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3 text-sm text-slate-300 lg:max-w-[38rem]">
             <div>
               <span className="text-slate-500">Backend:</span> FastAPI + live ArangoDB AQL
             </div>
@@ -237,8 +237,8 @@ function App() {
         {!session ? (
           <LoginForm onSubmit={handleLogin} loading={loadingLogin} />
         ) : (
-          <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
-            <aside className="space-y-4">
+          <div className="grid flex-1 gap-4 lg:min-h-0 lg:grid-cols-[360px_minmax(0,1fr)]">
+            <aside className="space-y-4 lg:max-h-full lg:overflow-auto lg:pr-1">
               <DatabaseSelect
                 databases={databases}
                 selectedDatabaseName={selectedDatabaseName}
@@ -287,7 +287,7 @@ function App() {
             {selectedDatabaseName ? (
               <GraphView graph={graph} loading={loadingGraph} isPlaying={isPlaying} resetKey={selectedTenantId} />
             ) : (
-              <section className="grid min-h-[620px] place-items-center rounded-3xl border border-slate-800 bg-slate-950/70 px-6 text-center">
+              <section className="grid min-h-[520px] place-items-center rounded-3xl border border-slate-800 bg-slate-950/70 px-6 text-center lg:min-h-full">
                 <div>
                   <h2 className="text-xl font-semibold text-slate-100">Choose a database</h2>
                   <p className="mt-2 max-w-md text-sm text-slate-400">
