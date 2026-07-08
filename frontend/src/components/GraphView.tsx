@@ -39,9 +39,13 @@ const NODE_COLORS: Record<GraphNode['group'], string> = {
 }
 
 const DIM_NODE_COLOR = '#1e293b'
-const DIM_LINK_COLOR = 'rgba(148, 163, 184, 0.04)'
-const DEFAULT_LINK_COLOR = 'rgba(125, 211, 252, 0.12)'
-const HIGHLIGHT_LINK_COLOR = 'rgba(226, 232, 240, 0.85)'
+const DIM_LINK_COLOR = 'rgba(148, 163, 184, 0.12)'
+const DIM_LINK_COLOR_3D = 'rgba(148, 163, 184, 0.34)'
+const DEFAULT_LINK_COLOR = 'rgba(125, 211, 252, 0.14)'
+const DEFAULT_LINK_COLOR_3D = 'rgba(125, 211, 252, 0.6)'
+const HIGHLIGHT_LINK_COLOR = 'rgba(226, 232, 240, 0.9)'
+const SELECTED_LINK_COLOR = 'rgba(250, 204, 21, 0.95)'
+const THREE_D_LINK_OPACITY = 0.6
 const GRAPH_BACKGROUND = '#020617'
 const NODE_REL_SIZE = 4
 const TWO_D_CHARGE_STRENGTH = -220
@@ -67,6 +71,8 @@ export function GraphView({
   const graph3dRef = useRef<ForceGraph3DMethods<GraphNode, GraphLink> | undefined>(undefined)
   const { width, height } = useElementSize(containerRef)
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null)
+  const [selectedLink, setSelectedLink] = useState<GraphLink | null>(null)
+  const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null)
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null)
   const [focusNodeId, setFocusNodeId] = useState<string | null>(null)
   const [highlightedIds, setHighlightedIds] = useState<Set<string>>(() => new Set())
@@ -116,24 +122,36 @@ export function GraphView({
 
   const getLinkColor = useCallback(
     (link: GraphLink) => {
-      if (!hasFocus) {
-        return DEFAULT_LINK_COLOR
+      if (selectedLinkId !== null && link.id === selectedLinkId) {
+        return SELECTED_LINK_COLOR
       }
 
-      return isLinkHighlighted(link, highlightedIds) ? HIGHLIGHT_LINK_COLOR : DIM_LINK_COLOR
+      if (!hasFocus) {
+        return viewMode === '3d' ? DEFAULT_LINK_COLOR_3D : DEFAULT_LINK_COLOR
+      }
+
+      if (isLinkHighlighted(link, highlightedIds)) {
+        return HIGHLIGHT_LINK_COLOR
+      }
+
+      return viewMode === '3d' ? DIM_LINK_COLOR_3D : DIM_LINK_COLOR
     },
-    [hasFocus, highlightedIds],
+    [hasFocus, highlightedIds, selectedLinkId, viewMode],
   )
 
   const getLinkWidth = useCallback(
     (link: GraphLink) => {
+      if (selectedLinkId !== null && link.id === selectedLinkId) {
+        return viewMode === '2d' ? 5 : 6
+      }
+
       if (isLinkHighlighted(link, highlightedIds)) {
         return viewMode === '2d' ? 3.6 : 4.5
       }
 
       return viewMode === '2d' ? 1.2 : 1.4
     },
-    [highlightedIds, viewMode],
+    [highlightedIds, selectedLinkId, viewMode],
   )
 
   const getLinkArrowLength = useCallback(
@@ -147,14 +165,32 @@ export function GraphView({
     [hasFocus, highlightedIds, viewMode],
   )
 
+  const getLinkParticleCount = useCallback(
+    (link: GraphLink) => {
+      if (link.id === selectedLinkId || isLinkHighlighted(link, highlightedIds)) {
+        return 4
+      }
+
+      return 0
+    },
+    [highlightedIds, selectedLinkId],
+  )
+
   const clearFocus = useCallback(() => {
     setSelectedNode(null)
+    setSelectedLink(null)
+    setSelectedLinkId(null)
     setFocusNodeId(null)
     setHighlightedIds(new Set())
   }, [])
 
   const handleCloseDetail = useCallback(() => {
     setSelectedNode(null)
+  }, [])
+
+  const handleCloseEdgeDetail = useCallback(() => {
+    setSelectedLink(null)
+    setSelectedLinkId(null)
   }, [])
 
   const handleNodeHover = useCallback((node: unknown) => {
@@ -166,6 +202,8 @@ export function GraphView({
       const graphNode = node as GraphNode
       const isAlreadyHighlighted = focusNodeId !== null && highlightedIds.has(graphNode.id)
 
+      setSelectedLink(null)
+      setSelectedLinkId(null)
       setSelectedNode(graphNode)
 
       if (isAlreadyHighlighted) {
@@ -177,6 +215,14 @@ export function GraphView({
     },
     [focusNodeId, highlightedIds],
   )
+
+  const handleLinkClick = useCallback((link: unknown) => {
+    const graphLink = link as GraphLink
+
+    setSelectedNode(null)
+    setSelectedLink(graphLink)
+    setSelectedLinkId(graphLink.id)
+  }, [])
 
   useEffect(() => {
     clearFocus()
@@ -419,14 +465,16 @@ export function GraphView({
               cooldownTicks={120}
               d3VelocityDecay={0.32}
               linkColor={(link) => getLinkColor(link as GraphLink)}
-              linkOpacity={0.2}
+              linkOpacity={THREE_D_LINK_OPACITY}
               linkDirectionalArrowLength={(link) => getLinkArrowLength(link as GraphLink)}
               linkDirectionalArrowRelPos={1}
               linkDirectionalArrowColor={(link) => getLinkColor(link as GraphLink)}
-            linkDirectionalParticles={(link) => (isLinkHighlighted(link as GraphLink, highlightedIds) ? 4 : 0)}
-            linkDirectionalParticleColor={() => '#7eea4d'}
-            linkDirectionalParticleSpeed={0.005}
-            linkDirectionalParticleWidth={4}
+              linkDirectionalParticles={(link) => getLinkParticleCount(link as GraphLink)}
+              linkDirectionalParticleColor={(link) =>
+                (link as GraphLink).id === selectedLinkId ? '#facc15' : '#7eea4d'
+              }
+              linkDirectionalParticleSpeed={0.005}
+              linkDirectionalParticleWidth={4}
               linkWidth={(link) => getLinkWidth(link as GraphLink)}
               nodeColor={(node) => getNodeColor(node as GraphNode)}
               nodeLabel={(node) => (node as GraphNode).label}
@@ -437,6 +485,7 @@ export function GraphView({
               nodeVal={(node) => getNodeValue(node as GraphNode)}
               onNodeClick={handleNodeClick}
               onNodeHover={handleNodeHover}
+              onLinkClick={handleLinkClick}
               onBackgroundClick={clearFocus}
             />
           ) : (
@@ -448,16 +497,18 @@ export function GraphView({
               backgroundColor={GRAPH_BACKGROUND}
               warmupTicks={80}
               cooldownTicks={120}
-            d3VelocityDecay={0.28}
-            autoPauseRedraw={!isPlaying && !hasFocus && hoveredNodeId === null}
-            linkColor={(link) => getLinkColor(link as GraphLink)}
+              d3VelocityDecay={0.28}
+              autoPauseRedraw={!isPlaying && !hasFocus && selectedLinkId === null && hoveredNodeId === null}
+              linkColor={(link) => getLinkColor(link as GraphLink)}
               linkDirectionalArrowLength={(link) => getLinkArrowLength(link as GraphLink)}
               linkDirectionalArrowRelPos={1}
               linkDirectionalArrowColor={(link) => getLinkColor(link as GraphLink)}
-            linkDirectionalParticles={(link) => (isLinkHighlighted(link as GraphLink, highlightedIds) ? 4 : 0)}
-            linkDirectionalParticleColor={() => '#67e8f9'}
-            linkDirectionalParticleSpeed={0.006}
-            linkDirectionalParticleWidth={3.6}
+              linkDirectionalParticles={(link) => getLinkParticleCount(link as GraphLink)}
+              linkDirectionalParticleColor={(link) =>
+                (link as GraphLink).id === selectedLinkId ? '#facc15' : '#67e8f9'
+              }
+              linkDirectionalParticleSpeed={0.006}
+              linkDirectionalParticleWidth={3.6}
               linkWidth={(link) => getLinkWidth(link as GraphLink)}
               nodeCanvasObject={drawNode2d}
               nodeCanvasObjectMode={() => 'replace'}
@@ -466,6 +517,7 @@ export function GraphView({
               nodeVal={(node) => getNodeValue(node as GraphNode)}
               onNodeClick={handleNodeClick}
               onNodeHover={handleNodeHover}
+              onLinkClick={handleLinkClick}
               onBackgroundClick={clearFocus}
             />
           )
@@ -494,7 +546,11 @@ export function GraphView({
         />
       ) : null}
 
-      {selectedNode ? <NodeDetail node={selectedNode} onClose={handleCloseDetail} /> : null}
+      {selectedNode ? (
+        <NodeDetail node={selectedNode} onClose={handleCloseDetail} />
+      ) : selectedLink ? (
+        <EdgeDetail link={selectedLink} onClose={handleCloseEdgeDetail} />
+      ) : null}
     </section>
   )
 }
@@ -716,6 +772,59 @@ function NodeDetail({ node, onClose }: { node: GraphNode; onClose: () => void })
       </dl>
     </aside>
   )
+}
+
+function EdgeDetail({ link, onClose }: { link: GraphLink; onClose: () => void }) {
+  const sourceLabel = getEndpointLabel(link.source)
+  const targetLabel = getEndpointLabel(link.target)
+  const entries = Object.entries(link.data)
+    .filter(([key]) => !['_id', '_key', '_from', '_to', '_rev'].includes(key))
+    .slice(0, 12)
+
+  return (
+    <aside className="absolute bottom-4 right-4 z-10 max-h-[70%] w-80 overflow-auto rounded-2xl border border-amber-400/30 bg-slate-950/90 p-4 shadow-xl backdrop-blur">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-300/80">Edge</p>
+          <h3 className="mt-1 text-lg font-semibold text-slate-100">{link.relationship || link.label || 'Relationship'}</h3>
+        </div>
+        <button className="rounded-full px-2 text-slate-400 hover:bg-slate-800 hover:text-slate-100" onClick={onClose}>
+          x
+        </button>
+      </div>
+
+      <div className="mt-3 flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-950/50 px-3 py-2 text-sm">
+        <span className="min-w-0 flex-1 truncate text-slate-200" title={sourceLabel}>
+          {sourceLabel}
+        </span>
+        <span className="shrink-0 text-amber-300">-&gt;</span>
+        <span className="min-w-0 flex-1 truncate text-right text-slate-200" title={targetLabel}>
+          {targetLabel}
+        </span>
+      </div>
+
+      {entries.length > 0 ? (
+        <dl className="mt-4 space-y-3 text-sm">
+          {entries.map(([key, value]) => (
+            <div key={key}>
+              <dt className="text-xs uppercase tracking-wide text-slate-500">{key}</dt>
+              <dd className="mt-1 break-words text-slate-200">{formatValue(value)}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <p className="mt-4 text-sm text-slate-400">No additional attributes on this edge.</p>
+      )}
+    </aside>
+  )
+}
+
+function getEndpointLabel(endpoint: string | GraphNode) {
+  if (typeof endpoint === 'string') {
+    return endpoint
+  }
+
+  return endpoint.label || endpoint.id
 }
 
 function formatValue(value: unknown) {
