@@ -67,7 +67,7 @@ simpler configuration and consistent query patterns.
 ### MDI Index Details
 MDI-prefixed indexes deployed on all temporal collections: Device, Software,
 Alert, hasVersion, hasConnection, hasLocation, hasDeviceSoftware, and hasAlert.
-The index type reported by ArangoDB is `mdi-prefixed` (not `mdi`).
+The index type reported by Arango is `mdi-prefixed` (not `mdi`).
 
 ---
 
@@ -98,7 +98,7 @@ The index type reported by ArangoDB is `mdi-prefixed` (not `mdi`).
 PYTHONPATH=. python3 src/validation/test_suite.py
 ```
 
-### Database validation (requires ArangoDB connection):
+### Database validation (requires Arango connection):
 ```bash
 # Ensure .env file is configured with ARANGO_* credentials
 PYTHONPATH=. python3 src/validation/validation_suite.py

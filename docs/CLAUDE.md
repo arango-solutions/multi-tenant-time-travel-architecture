@@ -3,17 +3,17 @@
 ## Project Context
 
 **Project**: Network Asset Management Demo - Multi-Tenant Temporal Graph
-**Goal**: Multi-tenant architecture using ArangoDB SmartGraphs with time travel patterns
+**Goal**: Multi-tenant architecture using Arango SmartGraphs with time travel patterns
 **Date Started**: September 10, 2025  
 
 ## Current State (as of March 2026)
 
 ### Architecture
 - **Language**: Python 3.9+
-- **Database**: ArangoDB Oasis cluster with unified SmartGraph
+- **Database**: Arango Oasis cluster with unified SmartGraph
 - **Data Generator**: `asset_generator.py` (multi-tenant with time travel)
 - **Demo Orchestration**: `automated_demo_walkthrough.py`
-- **Output**: Tenant-specific JSON files for ArangoDB import
+- **Output**: Tenant-specific JSON files for Arango import
 - **Vertex Collections**: Device, DeviceProxyIn, DeviceProxyOut, Location, Software, SoftwareProxyIn, SoftwareProxyOut, Alert, Class
 - **Edge Collections**: hasConnection, hasLocation, hasDeviceSoftware, hasVersion, hasAlert, type, subClassOf
 - **Graphs**: `network_assets_smartgraph` (unified SmartGraph, `smart_field="tenantId"`), `taxonomy_satellite_graph` (Class hierarchy)
@@ -132,14 +132,14 @@ VIOLATION = CRITICAL ERROR requiring immediate correction
 
 ### Scale-Out Enhancements
 - **Interactive Guidance**: Added step-by-step cluster scaling instructions
-- **Manual Process Integration**: Clear guidance for ArangoDB Oasis Web Interface operations
+- **Manual Process Integration**: Clear guidance for Arango Oasis Web Interface operations
 - **Shard Rebalancing**: Detailed instructions for optimal performance configuration
 - **Performance Monitoring**: Integration with cluster management tools
 
 ### Technical Accuracy
 - **MDI-Prefix Indexes**: Corrected from ZKD to MDI-prefix for timestamp data
 - **Naming Conventions**: Maintained strict adherence to camelCase and snake_case patterns
-- **Time Travel Blueprint**: Ensured compliance with ArangoDB temporal data recommendations
+- **Time Travel Blueprint**: Ensured compliance with Arango temporal data recommendations
 - **Enterprise Readiness**: All components now production-grade
 
 ### Code Quality Improvements
@@ -150,8 +150,8 @@ VIOLATION = CRITICAL ERROR requiring immediate correction
 
 ### Prerequisites Update
 - **Simplified Requirements**: Reduced manual setup steps
-- **Skill-Based Focus**: Emphasized ArangoDB Web Interface proficiency
+- **Skill-Based Focus**: Emphasized Arango Web Interface proficiency
 - **Training Resources**: Added specific preparation recommendations
 - **Practice Guidelines**: Recommended 2-3 practice runs before live presentation
 
-These enhancements ensure the demo system is enterprise-ready, presenter-friendly, and technically accurate for professional ArangoDB demonstrations.
+These enhancements ensure the demo system is enterprise-ready, presenter-friendly, and technically accurate for professional Arango demonstrations.

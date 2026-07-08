@@ -128,10 +128,10 @@ export function GraphView({
   const getLinkWidth = useCallback(
     (link: GraphLink) => {
       if (isLinkHighlighted(link, highlightedIds)) {
-        return viewMode === '2d' ? 2.4 : 3
+        return viewMode === '2d' ? 3.6 : 4.5
       }
 
-      return viewMode === '2d' ? 0.7 : 0.8
+      return viewMode === '2d' ? 1.2 : 1.4
     },
     [highlightedIds, viewMode],
   )
@@ -139,10 +139,10 @@ export function GraphView({
   const getLinkArrowLength = useCallback(
     (link: GraphLink) => {
       if (hasFocus && !isLinkHighlighted(link, highlightedIds)) {
-        return viewMode === '2d' ? 2 : 2.5
+        return viewMode === '2d' ? 3 : 3.5
       }
 
-      return viewMode === '2d' ? 3.5 : 4.5
+      return viewMode === '2d' ? 5 : 6
     },
     [hasFocus, highlightedIds, viewMode],
   )
@@ -423,10 +423,10 @@ export function GraphView({
               linkDirectionalArrowLength={(link) => getLinkArrowLength(link as GraphLink)}
               linkDirectionalArrowRelPos={1}
               linkDirectionalArrowColor={(link) => getLinkColor(link as GraphLink)}
-              linkDirectionalParticles={(link) => (isLinkHighlighted(link as GraphLink, highlightedIds) ? 3 : 0)}
-              linkDirectionalParticleColor={() => '#7eea4d'}
-              linkDirectionalParticleSpeed={0.005}
-              linkDirectionalParticleWidth={2.2}
+            linkDirectionalParticles={(link) => (isLinkHighlighted(link as GraphLink, highlightedIds) ? 4 : 0)}
+            linkDirectionalParticleColor={() => '#7eea4d'}
+            linkDirectionalParticleSpeed={0.005}
+            linkDirectionalParticleWidth={4}
               linkWidth={(link) => getLinkWidth(link as GraphLink)}
               nodeColor={(node) => getNodeColor(node as GraphNode)}
               nodeLabel={(node) => (node as GraphNode).label}
@@ -448,16 +448,16 @@ export function GraphView({
               backgroundColor={GRAPH_BACKGROUND}
               warmupTicks={80}
               cooldownTicks={120}
-              d3VelocityDecay={0.28}
-              autoPauseRedraw={!isPlaying}
-              linkColor={(link) => getLinkColor(link as GraphLink)}
+            d3VelocityDecay={0.28}
+            autoPauseRedraw={!isPlaying && !hasFocus && hoveredNodeId === null}
+            linkColor={(link) => getLinkColor(link as GraphLink)}
               linkDirectionalArrowLength={(link) => getLinkArrowLength(link as GraphLink)}
               linkDirectionalArrowRelPos={1}
               linkDirectionalArrowColor={(link) => getLinkColor(link as GraphLink)}
-              linkDirectionalParticles={(link) => (isLinkHighlighted(link as GraphLink, highlightedIds) ? 3 : 0)}
-              linkDirectionalParticleColor={() => '#67e8f9'}
-              linkDirectionalParticleSpeed={0.006}
-              linkDirectionalParticleWidth={2.2}
+            linkDirectionalParticles={(link) => (isLinkHighlighted(link as GraphLink, highlightedIds) ? 4 : 0)}
+            linkDirectionalParticleColor={() => '#67e8f9'}
+            linkDirectionalParticleSpeed={0.006}
+            linkDirectionalParticleWidth={3.6}
               linkWidth={(link) => getLinkWidth(link as GraphLink)}
               nodeCanvasObject={drawNode2d}
               nodeCanvasObjectMode={() => 'replace'}

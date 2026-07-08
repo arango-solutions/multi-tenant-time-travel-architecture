@@ -206,7 +206,7 @@ function App() {
       <div className="flex min-h-screen flex-col gap-4 px-3 py-3 sm:px-5 sm:py-4 lg:px-6">
         <header className="flex shrink-0 flex-col justify-between gap-4 rounded-3xl border border-slate-800 bg-slate-950/70 p-4 shadow-2xl shadow-slate-950/30 lg:flex-row lg:items-end lg:p-5">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-300">ArangoDB Time Travel</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-300">Arango Time Travel</p>
             <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white lg:text-5xl">
               Interactive Temporal Graph
             </h1>
@@ -216,9 +216,6 @@ function App() {
             </p>
           </div>
           <div className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3 text-sm text-slate-300 lg:max-w-[38rem]">
-            <div>
-              <span className="text-slate-500">Backend:</span> FastAPI + live ArangoDB AQL
-            </div>
             {session ? (
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-slate-400">

@@ -24,7 +24,7 @@ export function LoginForm({ onSubmit, loading = false }: LoginFormProps) {
     >
       <div>
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-300">Connect Server</p>
-        <h2 className="mt-3 text-2xl font-semibold text-white">Log in to ArangoDB</h2>
+        <h2 className="mt-3 text-2xl font-semibold text-white">Log in to Arango</h2>
         <p className="mt-2 text-sm leading-6 text-slate-400">
           Credentials are sent to the local FastAPI backend and held in memory behind a session token.
         </p>

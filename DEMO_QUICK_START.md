@@ -13,7 +13,7 @@ pip install -r requirements.txt
 
 # 2. Configure credentials (first time only)
 cp .env.example .env
-# Edit .env with your ArangoDB Oasis credentials
+# Edit .env with your Arango Oasis credentials
 
 # 3. Run demo
 make demo
@@ -42,7 +42,7 @@ make demo
 
 ---
 
-## ArangoDB Web UI
+## Arango Web UI
 
 **URL**: Your cluster endpoint (from `$ARANGO_ENDPOINT`)
 **Database**: Your database name (from `$ARANGO_DATABASE`)
@@ -114,7 +114,7 @@ FOR device IN Device
 
 - [ ] Dependencies installed (`pip install -r requirements.txt`)
 - [ ] Credentials configured (`.env` file)
-- [ ] Browser open to ArangoDB UI
+- [ ] Browser open to Arango UI
 - [ ] Tests passing: `make test`
 - [ ] Backup internet available
 
@@ -133,7 +133,7 @@ Demo is successful when you have shown:
 
 ## Opening Line
 
-*"Today I'm demonstrating a production-ready reference implementation for multi-tenant temporal graph databases. We'll show complete tenant isolation, time travel capabilities, and horizontal scalability using ArangoDB SmartGraphs. Let's start by generating data for 8 tenants..."*
+*"Today I'm demonstrating a production-ready reference implementation for multi-tenant temporal graph databases. We'll show complete tenant isolation, time travel capabilities, and horizontal scalability using Arango SmartGraphs. Let's start by generating data for 8 tenants..."*
 
 ---
 

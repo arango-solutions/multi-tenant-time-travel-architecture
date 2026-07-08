@@ -2,13 +2,13 @@
 
 ## 1. Overview
 
-This document outlines the requirements for a comprehensive reference implementation showcasing ArangoDB's capabilities for scalable multi-tenant temporal graph architectures. The reference implementation provides production-ready patterns for tenant isolation, horizontal scale-out, and temporal data lifecycle management, using network asset management as a concrete demonstration domain.
+This document outlines the requirements for a comprehensive reference implementation showcasing Arango's capabilities for scalable multi-tenant temporal graph architectures. The reference implementation provides production-ready patterns for tenant isolation, horizontal scale-out, and temporal data lifecycle management, using network asset management as a concrete demonstration domain.
 
-The network asset management demo supports multi-tenant architecture using ArangoDB SmartGraphs, with each tenant having completely isolated data containing their network assets, devices, locations, and relationships.
+The network asset management demo supports multi-tenant architecture using Arango SmartGraphs, with each tenant having completely isolated data containing their network assets, devices, locations, and relationships.
 
 ## 2. Project Goals
 
-The primary objective is to create a fully automated, end-to-end demo lifecycle that proves ArangoDB's suitability for large-scale, multi-tenant graph applications. Specific goals include:
+The primary objective is to create a fully automated, end-to-end demo lifecycle that proves Arango's suitability for large-scale, multi-tenant graph applications. Specific goals include:
 
 * **Multi-Tenancy:** Demonstrate the use of **disjoint SmartGraphs** to provide strong data isolation for each tenant.
 
@@ -25,7 +25,7 @@ The primary objective is to create a fully automated, end-to-end demo lifecycle 
 
 ### Success Criteria
 - Generate isolated tenant datasets with configurable parameters
-- Create tenant-specific ArangoDB smartgraphs
+- Create tenant-specific Arango smartgraphs
 - Validate complete data isolation between tenants
 - Demonstrate scalable tenant provisioning and horizontal scale-out
 - Implement automated temporal data lifecycle management
@@ -33,7 +33,7 @@ The primary objective is to create a fully automated, end-to-end demo lifecycle 
 ## Current State Analysis
 
 ### Existing Architecture
-- Single-tenant data generator creating JSON files for ArangoDB import
+- Single-tenant data generator creating JSON files for Arango import
 - Collections: Device, DeviceIn, DeviceOut, Location, Software
 - Edge Collections: hasConnection, hasLocation, hasSoftware, version
 - Proxy pattern for device versioning with temporal data
@@ -81,7 +81,7 @@ The database schema and indexing strategy must be designed for performance and l
 
 ### 3.3 Demo Automation
 
-A series of scripts must be developed to manage the entire demo lifecycle. These scripts will interact with the ArangoDB cluster management APIs.
+A series of scripts must be developed to manage the entire demo lifecycle. These scripts will interact with the Arango cluster management APIs.
 
 ## Detailed Functional Requirements
 
@@ -95,7 +95,7 @@ A series of scripts must be developed to manage the entire demo lifecycle. These
 - **FR2.1**: Generate isolated datasets for multiple tenants
 - **FR2.2**: Support configurable parameters per tenant (device count, locations, etc.)
 - **FR2.3**: Maintain existing data quality and relationships within each tenant
-- **FR2.4**: Generate tenant-specific JSON files for ArangoDB import
+- **FR2.4**: Generate tenant-specific JSON files for Arango import
 - **FR2.5**: Include temporal attributes (`created`, `expired`, `ttlExpireAt`) in all generated data
 - **FR2.6**: Add `_fromType` and `_toType` attributes to edge documents for vertex-centric indexing
 - **FR2.7**: Increase default data generation size by 10-100x for scale-out demonstrations
@@ -104,7 +104,7 @@ A series of scripts must be developed to manage the entire demo lifecycle. These
 
 #### FR3: SmartGraph Configuration
 - **FR3.1**: Create disjoint smartgraph definitions for each tenant
-- **FR3.2**: Generate ArangoDB setup scripts for tenant provisioning
+- **FR3.2**: Generate Arango setup scripts for tenant provisioning
 - **FR3.3**: Support tenant graph creation and deletion
 - **FR3.4**: Validate smartgraph disjoint properties
 - **FR3.5**: Implement time travel blueprint graph model with temporal observations as vertices
@@ -309,7 +309,7 @@ Each tenant will have a disjoint smartgraph with:
 4. Create tenant metadata management
 
 ### Phase 2: Infrastructure (Week 3-4)
-5. Generate ArangoDB smartgraph configuration scripts
+5. Generate Arango smartgraph configuration scripts
 6. Implement tenant provisioning utilities
 7. Create bulk tenant data generation
 8. Add data validation and integrity checks
@@ -330,7 +330,7 @@ Each tenant will have a disjoint smartgraph with:
 - [x] Naming convention consistency within each tenant
 
 ### SmartGraph Integration
-- [x] Generate valid ArangoDB smartgraph definitions
+- [x] Generate valid Arango smartgraph definitions
 - [x] Create tenant-specific database setup scripts
 - [x] Validate disjoint smartgraph properties
 - [ ] Support tenant graph lifecycle management (partial - creation done, deletion pending)
@@ -387,12 +387,12 @@ Each tenant will have a disjoint smartgraph with:
 
 ## Dependencies
 
-- ArangoDB cluster with smartgraph and disjoint smartgraph support
-- ArangoDB cluster management APIs for automation
+- Arango cluster with smartgraph and disjoint smartgraph support
+- Arango cluster management APIs for automation
 - Python environment with existing dependencies (geojson, uuid, datetime)
 - File system access for tenant-specific data storage
 - Configuration management system for tenant and cluster parameters
-- TTL index support in ArangoDB
+- TTL index support in Arango
 - Satellite graph capability for device taxonomy replication
 
 ## 6. Alert Management System (NEW)
@@ -450,7 +450,7 @@ hasAlert (Edge Collection):
 #### Implementation Status: [COMPLETE]
 - **Alert Generation**: Realistic alerts from DeviceProxyOut and SoftwareProxyOut [COMPLETE]
 - **Alert Resolution**: Working lifecycle management with TTL activation [COMPLETE]
-- **Graph Integration**: hasAlert edges fully visualizable in ArangoDB Graph Visualizer [COMPLETE]
+- **Graph Integration**: hasAlert edges fully visualizable in Arango Graph Visualizer [COMPLETE]
 - **Multi-tenant Support**: Complete tenant isolation for all alert data [COMPLETE]
 - **TTL Management**: Resolved alerts automatically age out (demo: 5min, production: 30 days) [COMPLETE]
 - **Real-time Simulation**: On-demand alert generation during demonstrations [COMPLETE]
