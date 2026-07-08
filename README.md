@@ -1,6 +1,6 @@
 # Scalable Multi-Tenant Temporal Graph Reference Implementation
 
-A production-ready reference implementation for **multi-tenant temporal graph databases** using ArangoDB. Demonstrates tenant isolation via SmartGraphs, time-travel queries, TTL-based data lifecycle management, and horizontal scale-out -- all patterns reusable across network asset management, IAM, cybersecurity, and cloud infrastructure domains.
+A production-ready reference implementation for **multi-tenant temporal graph databases** using Arango. Demonstrates tenant isolation via SmartGraphs, time-travel queries, TTL-based data lifecycle management, and horizontal scale-out -- all patterns reusable across network asset management, IAM, cybersecurity, and cloud infrastructure domains.
 
 ![Network Asset Graph Visualization](assets/network-graph-visualization.png)
 
@@ -15,7 +15,7 @@ pip install -r requirements.txt
 
 # 2. Configure credentials
 cp .env.example .env
-# Edit .env with your ArangoDB Oasis credentials
+# Edit .env with your Arango Oasis credentials
 
 # 3. Run the demo
 make demo
@@ -23,14 +23,31 @@ make demo
 
 That's it. The interactive walkthrough guides you through everything with pauses for observation. Press Enter to advance.
 
-> **Requires**: Python 3.9+, an [ArangoDB Oasis](https://cloud.arangodb.com/) cluster (Enterprise Edition required for SmartGraphs), and a modern browser for the ArangoDB Web UI.
+> **Requires**: Python 3.9+, an [Arango Oasis](https://cloud.arangodb.com/) cluster (Enterprise Edition required for SmartGraphs), and a modern browser for the Arango Web UI.
 
 See [DEMO_QUICK_START.md](DEMO_QUICK_START.md) for a one-page presenter cheat sheet, or [docs/PRESENTER_GUIDE.md](docs/PRESENTER_GUIDE.md) for a detailed handoff guide.
+
+### Interactive Frontend
+
+The repo includes a React + TypeScript + Tailwind frontend for exploring point-in-time graph snapshots. The frontend calls a local FastAPI service; from the browser, log in with an Arango endpoint, username, and password, choose an accessible database, then choose a tenant from that database.
+
+```bash
+# Terminal 1: start the API
+make api
+
+# Terminal 2: start the frontend
+cd frontend
+npm install
+npm run dev
+```
+
+Open the Vite URL printed by `npm run dev`, connect to your Arango server, choose a database, choose a tenant, and move the slider to query graph state at a specific Unix timestamp. Credentials are held only in the local FastAPI backend's in-memory session store; the browser keeps an opaque session token. Device/software nodes carry the active version at the selected time, while alert nodes appear or disappear based on their temporal validity.
 
 ### Available Make Targets
 
 | Command | Description |
 |---------|-------------|
+| `make api` | Run temporal graph API |
 | `make demo` | Run interactive demo (recommended) |
 | `make demo-auto` | Run auto-advancing demo |
 | `make deploy` | Deploy database (production TTL) |
@@ -118,7 +135,7 @@ graph TB
 
 **SmartGraph + Satellite** -- Tenant data is sharded by `tenantId` for physical isolation. Taxonomy metadata lives in satellite collections replicated to every node for fast local reads.
 
-**TTL Lifecycle** -- Current configurations never expire (`expired = NEVER_EXPIRES`). When a configuration is superseded, the old version gets `expired = now()` and `ttlExpireAt = now() + TTL_INTERVAL`. ArangoDB automatically deletes it when TTL expires (5 minutes in demo mode, 30 days in production).
+**TTL Lifecycle** -- Current configurations never expire (`expired = NEVER_EXPIRES`). When a configuration is superseded, the old version gets `expired = now()` and `ttlExpireAt = now() + TTL_INTERVAL`. Arango automatically deletes it when TTL expires (5 minutes in demo mode, 30 days in production).
 
 ### Data Model
 
@@ -140,7 +157,7 @@ Edge metadata:
 
 ### Environment Variables
 
-Copy the template and fill in your ArangoDB Oasis credentials:
+Copy the template and fill in your Arango Oasis credentials:
 
 ```bash
 cp .env.example .env
@@ -170,7 +187,7 @@ Edit `src/config/tenant_config.py` to customize tenants and scale factors:
 
 ```bash
 make test       # 21 unit tests (no database required)
-make validate   # 9 database validation tests (requires ArangoDB connection)
+make validate   # 9 database validation tests (requires Arango connection)
 ```
 
 All 30 tests passing. Categories: tenant configuration, data generation, naming convention compliance, file management, integration, performance, and database validation.
@@ -181,7 +198,7 @@ All 30 tests passing. Categories: tenant configuration, data generation, naming 
 src/
   config/                   Configuration, credentials, tenant setup
   data_generation/          Asset and taxonomy data generation
-  database/                 ArangoDB deployment and utilities
+  database/                 Arango deployment and utilities
   simulation/               Transaction, alert, and scale-out simulation
   ttl/                      TTL constants and monitoring
   validation/               Unit tests and database validation suite
@@ -208,7 +225,7 @@ docs/                       PRD, presenter guide, development notes
 
 **"Connection failed"** -- Check that `.env` exists with correct credentials. Verify with `python3 -c "from dotenv import load_dotenv; load_dotenv(); import os; print(os.getenv('ARANGO_ENDPOINT'))"`.
 
-**"SmartGraph creation failed"** -- SmartGraphs require ArangoDB Enterprise Edition in cluster mode. Community Edition will not work.
+**"SmartGraph creation failed"** -- SmartGraphs require Arango Enterprise Edition in cluster mode. Community Edition will not work.
 
 **"Demo is slow"** -- Normal. Generating and deploying 21,000+ documents takes 2-3 minutes.
 
@@ -226,4 +243,4 @@ MIT -- see [LICENSE](LICENSE).
 
 ---
 
-*Built for enterprise-grade multi-tenant network asset management with ArangoDB.*
+*Built for enterprise-grade multi-tenant network asset management with Arango.*

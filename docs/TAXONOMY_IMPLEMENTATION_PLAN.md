@@ -112,7 +112,7 @@ Software
 |   +-- NoSQLDB
 |       |-- DocumentDB (MongoDB)
 |       |-- KeyValueDB (Redis)
-|       +-- GraphDB (Neo4j, ArangoDB)
+|       +-- GraphDB (Neo4j, Arango)
 |-- WebServer
 |   |-- Apache
 |   |-- Nginx

@@ -11,6 +11,8 @@ authors = [
 dependencies = [
     "python-arango>=8.0,<9.0",
     "python-dotenv>=1.0,<2.0",
+    "fastapi>=0.115,<1.0",
+    "uvicorn[standard]>=0.30,<1.0",
 ]
 
 [project.optional-dependencies]

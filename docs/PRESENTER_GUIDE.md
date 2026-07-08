@@ -16,7 +16,7 @@ pip install -r requirements.txt
 
 # 2. Configure credentials (first time only)
 cp .env.example .env
-# Edit .env with your ArangoDB Oasis credentials
+# Edit .env with your Arango credentials
 
 # 3. Run interactive demo
 make demo
@@ -47,8 +47,8 @@ That's it! The demo will guide you through everything with interactive pauses.
 
 ### Required Before Demo
 
-1. **ArangoDB Cluster Access**
-   - An ArangoDB Oasis cluster endpoint
+1. **Arango Cluster Access**
+   - An Arango Oasis cluster endpoint
    - Credentials are in `.env` (see Configuration below)
 
 2. **Python 3.9+**
@@ -59,7 +59,7 @@ That's it! The demo will guide you through everything with interactive pauses.
    - Clone or locate the `network-asset-management-demo` repository
 
 4. **Web Browser**
-   - For ArangoDB Web Interface visualization
+   - For Arango Web Interface visualization
    - Login at your cluster endpoint (`$ARANGO_ENDPOINT`)
 
 ### Configuration
@@ -91,7 +91,7 @@ cd /path/to/network-asset-management-demo
 # Run unit tests (21 tests, no database required)
 make test
 
-# Run database validation (9 checks, requires ArangoDB connection)
+# Run database validation (9 checks, requires Arango connection)
 make validate
 ```
 
@@ -127,7 +127,7 @@ python3 -c "from dotenv import load_dotenv; load_dotenv(); import os; print(os.g
 # Should show your cluster URL
 ```
 
-### Step 3: Open ArangoDB Web Interface (Optional but Recommended)
+### Step 3: Open Arango Web Interface (Optional but Recommended)
 
 1. Open browser to your cluster endpoint (from `.env`)
 2. Login with your credentials
@@ -229,7 +229,7 @@ The interactive demo walks through 10 major sections:
 - "MDI-prefixed indexes optimize temporal queries"
 - "Shared collections with tenant-specific data partitioning"
 
-**What to Show in Browser** (ArangoDB Web UI):
+**What to Show in Browser** (Arango Web UI):
 1. Navigate to "Collections"
 2. Show vertex collections: Device, Software, Location, etc.
 3. Show edge collections: hasConnection, hasDeviceSoftware, hasVersion
@@ -335,7 +335,7 @@ The demo provides specific document keys to inspect:
 
 **Manual Step** (If showing scale-out):
 The demo will pause and provide instructions for:
-1. Adding database server (via ArangoDB Oasis UI)
+1. Adding database server (via Arango Oasis UI)
 2. Rebalancing shards
 3. Monitoring distribution
 
@@ -354,7 +354,7 @@ The demo will pause and provide instructions for:
 
 ## What to Show During Demo
 
-### Key Visualizations in ArangoDB Web UI
+### Key Visualizations in Arango Web UI
 
 #### 1. Graph Visualizer
 1. Navigate to "Graphs" -> `network_assets_smartgraph`
@@ -453,7 +453,7 @@ PYTHONPATH=. python3 src/validation/test_suite.py
 
 ### Issue: "Can't see data in browser"
 
-**Symptoms**: Collections appear empty in ArangoDB UI
+**Symptoms**: Collections appear empty in Arango UI
 
 **Solution**:
 1. Verify you selected the correct database (`$ARANGO_DATABASE`)
@@ -562,7 +562,7 @@ PYTHONPATH=. python3 src/ttl/ttl_monitor.py --duration 15
 
 ### Opening (30 seconds)
 
-"Today I'm showing you a reference implementation for multi-tenant temporal graph databases using ArangoDB. This demonstrates complete tenant isolation, time travel capabilities, and horizontal scalability - all production-ready features."
+"Today I'm showing you a reference implementation for multi-tenant temporal graph databases using Arango. This demonstrates complete tenant isolation, time travel capabilities, and horizontal scalability - all production-ready features."
 
 ### During Data Generation (1 minute)
 
@@ -570,7 +570,7 @@ PYTHONPATH=. python3 src/ttl/ttl_monitor.py --duration 15
 
 ### During Deployment (1 minute)
 
-"Now we're deploying to ArangoDB with SmartGraphs - that's automatic sharding by tenant ID. The system creates MDI-prefixed multi-dimensional indexes that optimize our temporal queries. In the browser here, you can see all the collections being created with proper isolation."
+"Now we're deploying to Arango with SmartGraphs - that's automatic sharding by tenant ID. The system creates MDI-prefixed multi-dimensional indexes that optimize our temporal queries. In the browser here, you can see all the collections being created with proper isolation."
 
 ### During Time Travel Demo (2 minutes)
 
@@ -596,7 +596,7 @@ PYTHONPATH=. python3 demos/automated_demo_walkthrough.py --interactive
 
 **Emergency Stop**: Press `Ctrl+C`
 
-**ArangoDB UI**: `$ARANGO_ENDPOINT`
+**Arango UI**: `$ARANGO_ENDPOINT`
 
 **Test System**:
 ```bash
@@ -620,10 +620,10 @@ Before you start your demo, verify:
 
 - [ ] Can access project directory
 - [ ] `.env` file configured (created from `.env.example`)
-- [ ] Can connect to ArangoDB (browser login works)
+- [ ] Can connect to Arango (browser login works)
 - [ ] Tests pass (run quick verification)
 - [ ] Have backup internet connection
-- [ ] Familiarized with ArangoDB Web UI
+- [ ] Familiarized with Arango Web UI
 - [ ] Know where pause points are in demo
 - [ ] Prepared for Q&A on multi-tenancy and time travel
 
