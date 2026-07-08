@@ -19,6 +19,7 @@ function App() {
   const [debouncedTime, setDebouncedTime] = useState<number | null>(null)
   const [graph, setGraph] = useState<GraphPayload | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [playbackSpeed, setPlaybackSpeed] = useState(1)
   const [loadingLogin, setLoadingLogin] = useState(false)
   const [loadingDatabases, setLoadingDatabases] = useState(false)
   const [loadingTenants, setLoadingTenants] = useState(false)
@@ -203,7 +204,7 @@ function App() {
   return (
     <main className="min-h-screen text-slate-100">
       <div className="flex min-h-screen flex-col gap-4 px-3 py-3 sm:px-5 sm:py-4 lg:px-6">
-        <header className="flex flex-col justify-between gap-4 rounded-3xl border border-slate-800 bg-slate-950/70 p-4 shadow-2xl shadow-slate-950/30 lg:flex-row lg:items-end lg:p-5">
+        <header className="flex shrink-0 flex-col justify-between gap-4 rounded-3xl border border-slate-800 bg-slate-950/70 p-4 shadow-2xl shadow-slate-950/30 lg:flex-row lg:items-end lg:p-5">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-300">ArangoDB Time Travel</p>
             <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white lg:text-5xl">
@@ -244,79 +245,91 @@ function App() {
         {!session ? (
           <LoginForm onSubmit={handleLogin} loading={loadingLogin} />
         ) : (
-          <div className="grid flex-1 gap-4 lg:min-h-0 lg:grid-cols-[360px_minmax(0,1fr)]">
-            <aside className="space-y-4 lg:max-h-full lg:overflow-auto lg:pr-1">
-              <DatabaseSelect
-                databases={databases}
-                selectedDatabaseName={selectedDatabaseName}
-                onChange={(databaseName) => void handleDatabaseChange(databaseName)}
-                disabled={loadingDatabases}
+          <>
+            {selectedDatabaseName ? (
+              <TimeSlider
+                range={timeRange}
+                value={selectedTime}
+                onChange={handleTimeChange}
+                isPlaying={isPlaying}
+                onPlayingChange={setIsPlaying}
+                speed={playbackSpeed}
+                onSpeedChange={setPlaybackSpeed}
+                disabled={selectedTenantIds.length === 0 || loadingGraph}
               />
+            ) : null}
+
+            <div className="grid min-h-[640px] flex-1 gap-4 lg:grid-cols-[360px_minmax(0,1fr)] lg:overflow-hidden">
+              <aside className="space-y-4 lg:h-full lg:overflow-auto lg:pr-1">
+                <DatabaseSelect
+                  databases={databases}
+                  selectedDatabaseName={selectedDatabaseName}
+                  onChange={(databaseName) => void handleDatabaseChange(databaseName)}
+                  disabled={loadingDatabases}
+                />
+
+                {selectedDatabaseName ? (
+                  <>
+                    <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+                      <TenantSelect
+                        tenants={tenants}
+                        selectedTenantIds={selectedTenantIds}
+                        selectedTime={selectedTime}
+                        onChange={setSelectedTenantIds}
+                        disabled={loadingTenants}
+                      />
+                      {selectedTenants.length > 0 ? (
+                        <p className="mt-3 text-sm leading-6 text-slate-400">
+                          {selectedTenants.length === 1
+                            ? selectedTenants[0].description ||
+                              `Scale factor ${selectedTenants[0].scaleFactor ?? 'unknown'}`
+                            : `${selectedTenants.length} tenants selected for temporal overlay.`}
+                        </p>
+                      ) : null}
+                    </section>
+
+                    <TenantTimeline tenants={tenants} selectedTime={selectedTime} selectedTenantIds={selectedTenantIds} />
+
+                    <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+                      <h2 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">Legend</h2>
+                      <div className="mt-4 space-y-3 text-sm text-slate-300">
+                        <LegendItem color="bg-cyan-300" label="Device version active at timestamp" />
+                        <LegendItem color="bg-violet-300" label="Software version active at timestamp" />
+                        <LegendItem color="bg-emerald-300" label="Location" />
+                        <LegendItem color="bg-rose-300" label="Alert active at timestamp" />
+                      </div>
+                    </section>
+                  </>
+                ) : null}
+              </aside>
 
               {selectedDatabaseName ? (
-                <>
-                  <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-                    <TenantSelect
-                      tenants={tenants}
-                      selectedTenantIds={selectedTenantIds}
-                      selectedTime={selectedTime}
-                      onChange={setSelectedTenantIds}
-                      disabled={loadingTenants}
-                    />
-                    {selectedTenants.length > 0 ? (
-                      <p className="mt-3 text-sm leading-6 text-slate-400">
-                        {selectedTenants.length === 1
-                          ? selectedTenants[0].description ||
-                            `Scale factor ${selectedTenants[0].scaleFactor ?? 'unknown'}`
-                          : `${selectedTenants.length} tenants selected for temporal overlay.`}
-                      </p>
-                    ) : null}
-                  </section>
-
-                  <TenantTimeline tenants={tenants} selectedTime={selectedTime} selectedTenantIds={selectedTenantIds} />
-
-                  <TimeSlider
-                    range={timeRange}
-                    value={selectedTime}
-                    onChange={handleTimeChange}
-                    isPlaying={isPlaying}
-                    onPlayingChange={setIsPlaying}
-                    disabled={selectedTenantIds.length === 0 || loadingGraph}
-                  />
-
-                  <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">Legend</h2>
-                    <div className="mt-4 space-y-3 text-sm text-slate-300">
-                      <LegendItem color="bg-cyan-300" label="Device version active at timestamp" />
-                      <LegendItem color="bg-violet-300" label="Software version active at timestamp" />
-                      <LegendItem color="bg-emerald-300" label="Location" />
-                      <LegendItem color="bg-rose-300" label="Alert active at timestamp" />
-                    </div>
-                  </section>
-                </>
-              ) : null}
-            </aside>
-
-            {selectedDatabaseName ? (
-              <GraphView
-                graph={graph}
-                loading={loadingGraph}
-                isPlaying={isPlaying}
-                resetKey={selectedTenantKey}
-                selectedTenantIds={selectedTenantIds}
-              />
-            ) : (
-              <section className="grid min-h-[520px] place-items-center rounded-3xl border border-slate-800 bg-slate-950/70 px-6 text-center lg:min-h-full">
-                <div>
-                  <h2 className="text-xl font-semibold text-slate-100">Choose a database</h2>
-                  <p className="mt-2 max-w-md text-sm text-slate-400">
-                    After selecting an accessible database, tenants and temporal graph snapshots will load from that
-                    database.
-                  </p>
-                </div>
-              </section>
-            )}
-          </div>
+                <GraphView
+                  graph={graph}
+                  loading={loadingGraph}
+                  isPlaying={isPlaying}
+                  onPlayingChange={setIsPlaying}
+                  resetKey={selectedTenantKey}
+                  selectedTenantIds={selectedTenantIds}
+                  timeRange={timeRange}
+                  selectedTime={selectedTime}
+                  onTimeChange={handleTimeChange}
+                  playbackSpeed={playbackSpeed}
+                  onPlaybackSpeedChange={setPlaybackSpeed}
+                />
+              ) : (
+                <section className="grid min-h-[520px] place-items-center rounded-3xl border border-slate-800 bg-slate-950/70 px-6 text-center lg:min-h-full">
+                  <div>
+                    <h2 className="text-xl font-semibold text-slate-100">Choose a database</h2>
+                    <p className="mt-2 max-w-md text-sm text-slate-400">
+                      After selecting an accessible database, tenants and temporal graph snapshots will load from that
+                      database.
+                    </p>
+                  </div>
+                </section>
+              )}
+            </div>
+          </>
         )}
       </div>
     </main>

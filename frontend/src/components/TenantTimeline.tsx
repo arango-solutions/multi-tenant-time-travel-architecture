@@ -32,7 +32,7 @@ export function TenantTimeline({ tenants, selectedTime, selectedTenantIds }: Ten
         </div>
       </div>
 
-      <div className="mt-4 space-y-2">
+      <div className="mt-4 max-h-72 space-y-2 overflow-y-auto pr-1">
         {orderedTenants.map((tenant) => {
           const isAvailable = isTenantAvailable(tenant, selectedTime)
           const isSelected = selectedTenantIds.includes(tenant.id)

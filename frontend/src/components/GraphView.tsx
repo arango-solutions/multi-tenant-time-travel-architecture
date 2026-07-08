@@ -1,18 +1,26 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { ForceGraphMethods as ForceGraph2DMethods } from 'react-force-graph-2d'
 import ForceGraph2D from 'react-force-graph-2d'
 import type { ForceGraphMethods as ForceGraph3DMethods } from 'react-force-graph-3d'
 import ForceGraph3D from 'react-force-graph-3d'
 import { AmbientLight, Color, DirectionalLight, Mesh, MeshPhongMaterial, SphereGeometry, Vector2 } from 'three'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
-import type { GraphLink, GraphNode, GraphPayload } from '../api'
+import type { GraphLink, GraphNode, GraphPayload, TimeRange } from '../api'
 import { getTenantColor } from '../tenantColors'
+import { SPEED_PRESETS, formatSpeedLabel } from './TimeSlider'
 
 type GraphViewProps = {
   graph: GraphPayload | null
   loading?: boolean
   isPlaying?: boolean
+  onPlayingChange?: (playing: boolean) => void
   resetKey?: string | null
   selectedTenantIds?: string[]
+  timeRange?: TimeRange | null
+  selectedTime?: number | null
+  onTimeChange?: (timestamp: number) => void
+  playbackSpeed?: number
+  onPlaybackSpeedChange?: (speed: number) => void
 }
 
 type ViewMode = '2d' | '3d'
@@ -31,11 +39,13 @@ const NODE_COLORS: Record<GraphNode['group'], string> = {
 }
 
 const DIM_NODE_COLOR = '#1e293b'
-const DIM_LINK_COLOR = 'rgba(148, 163, 184, 0.06)'
-const DEFAULT_LINK_COLOR = 'rgba(125, 211, 252, 0.22)'
-const HIGHLIGHT_LINK_COLOR = 'rgba(226, 232, 240, 0.9)'
+const DIM_LINK_COLOR = 'rgba(148, 163, 184, 0.04)'
+const DEFAULT_LINK_COLOR = 'rgba(125, 211, 252, 0.12)'
+const HIGHLIGHT_LINK_COLOR = 'rgba(226, 232, 240, 0.85)'
 const GRAPH_BACKGROUND = '#020617'
 const NODE_REL_SIZE = 4
+const TWO_D_CHARGE_STRENGTH = -220
+const TWO_D_LINK_DISTANCE = 115
 const MIN_GRAPH_WIDTH = 320
 const MIN_GRAPH_HEIGHT = 420
 
@@ -43,10 +53,17 @@ export function GraphView({
   graph,
   loading = false,
   isPlaying = false,
+  onPlayingChange,
   resetKey = null,
   selectedTenantIds = [],
+  timeRange = null,
+  selectedTime = null,
+  onTimeChange,
+  playbackSpeed = 1,
+  onPlaybackSpeedChange,
 }: GraphViewProps) {
-  const containerRef = useRef<HTMLElement | null>(null)
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const graph2dRef = useRef<ForceGraph2DMethods<GraphNode, GraphLink> | undefined>(undefined)
   const graph3dRef = useRef<ForceGraph3DMethods<GraphNode, GraphLink> | undefined>(undefined)
   const { width, height } = useElementSize(containerRef)
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null)
@@ -111,12 +128,23 @@ export function GraphView({
   const getLinkWidth = useCallback(
     (link: GraphLink) => {
       if (isLinkHighlighted(link, highlightedIds)) {
-        return viewMode === '2d' ? 2.4 : 2
+        return viewMode === '2d' ? 2.4 : 3
       }
 
       return viewMode === '2d' ? 0.7 : 0.8
     },
     [highlightedIds, viewMode],
+  )
+
+  const getLinkArrowLength = useCallback(
+    (link: GraphLink) => {
+      if (hasFocus && !isLinkHighlighted(link, highlightedIds)) {
+        return viewMode === '2d' ? 2 : 2.5
+      }
+
+      return viewMode === '2d' ? 3.5 : 4.5
+    },
+    [hasFocus, highlightedIds, viewMode],
   )
 
   const clearFocus = useCallback(() => {
@@ -208,6 +236,16 @@ export function GraphView({
     ])
   }, [graphData.nodes.length, graphHeight, graphWidth, viewMode])
 
+  useEffect(() => {
+    if (viewMode !== '2d' || !graph2dRef.current || graphData.nodes.length === 0) {
+      return
+    }
+
+    graph2dRef.current.d3Force('charge')?.strength?.(TWO_D_CHARGE_STRENGTH)
+    graph2dRef.current.d3Force('link')?.distance?.(TWO_D_LINK_DISTANCE)
+    graph2dRef.current.d3ReheatSimulation()
+  }, [graphData.nodes.length, graphData.links.length, viewMode])
+
   const createThreeNode = useCallback(
     (node: unknown) => {
       const graphNode = node as GraphNode
@@ -292,9 +330,10 @@ export function GraphView({
 
   return (
     <section
-      ref={containerRef}
-      className={`relative h-[70vh] min-h-[520px] w-full overflow-hidden rounded-3xl border border-cyan-500/10 bg-slate-950/80 shadow-2xl shadow-cyan-950/20 ring-1 ring-white/5 lg:h-full lg:min-h-0 ${
-        isFullscreen ? 'fixed inset-3 z-50 h-auto min-h-0 rounded-3xl' : ''
+      className={`relative h-[78vh] min-h-[640px] w-full min-w-0 overflow-hidden rounded-3xl border border-cyan-500/10 bg-slate-950/80 shadow-2xl shadow-cyan-950/20 ring-1 ring-white/5 lg:h-full ${
+        isFullscreen
+          ? '!fixed !inset-3 !z-50 !h-[calc(100vh-1.5rem)] !max-h-[calc(100vh-1.5rem)] !min-h-0 !w-[calc(100vw-1.5rem)] !max-w-[calc(100vw-1.5rem)]'
+          : ''
       }`}
     >
       <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_20%_15%,rgba(34,211,238,0.12),transparent_28rem),radial-gradient(circle_at_80%_75%,rgba(192,132,252,0.12),transparent_24rem)]" />
@@ -324,6 +363,14 @@ export function GraphView({
       </div>
 
       <div className="absolute right-4 top-4 z-10 flex flex-wrap justify-end gap-2">
+        <button
+          type="button"
+          className="rounded-full border border-cyan-400/40 bg-slate-950/80 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-cyan-200 shadow-xl backdrop-blur transition hover:border-cyan-300 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50"
+          onClick={() => onPlayingChange?.(!isPlaying)}
+          disabled={!onPlayingChange || graphData.nodes.length === 0 || loading}
+        >
+          {isPlaying ? 'Pause' : 'Play'}
+        </button>
         <div className="flex rounded-full border border-slate-700/80 bg-slate-950/80 p-1 shadow-xl backdrop-blur">
           {(['3d', '2d'] as const).map((mode) => (
             <button
@@ -357,80 +404,182 @@ export function GraphView({
         </div>
       ) : null}
 
-      {graphData.nodes.length > 0 ? (
-        viewMode === '3d' ? (
-          <ForceGraph3D
-            ref={graph3dRef}
-            graphData={graphData}
-            width={graphWidth}
-            height={graphHeight}
-            backgroundColor={GRAPH_BACKGROUND}
-            showNavInfo={false}
-            rendererConfig={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
-            warmupTicks={80}
-            cooldownTicks={120}
-            d3VelocityDecay={0.32}
-            linkColor={(link) => getLinkColor(link as GraphLink)}
-            linkOpacity={0.34}
-            linkDirectionalParticles={(link) => (isLinkHighlighted(link as GraphLink, highlightedIds) ? 3 : 0)}
-            linkDirectionalParticleColor={() => '#67e8f9'}
-            linkDirectionalParticleSpeed={0.005}
-            linkDirectionalParticleWidth={1.8}
-            linkWidth={(link) => getLinkWidth(link as GraphLink)}
-            nodeColor={(node) => getNodeColor(node as GraphNode)}
-            nodeLabel={(node) => (node as GraphNode).label}
-            nodeOpacity={0.94}
-            nodeRelSize={NODE_REL_SIZE}
-            nodeResolution={16}
-            nodeThreeObject={createThreeNode}
-            nodeVal={(node) => getNodeValue(node as GraphNode)}
-            onNodeClick={handleNodeClick}
-            onNodeHover={handleNodeHover}
-            onBackgroundClick={clearFocus}
-          />
+      <div ref={containerRef} className="absolute inset-0 overflow-hidden">
+        {graphData.nodes.length > 0 ? (
+          viewMode === '3d' ? (
+            <ForceGraph3D
+              ref={graph3dRef}
+              graphData={graphData}
+              width={graphWidth}
+              height={graphHeight}
+              backgroundColor={GRAPH_BACKGROUND}
+              showNavInfo={false}
+              rendererConfig={{ antialias: true, alpha: true, powerPreference: 'low-power' }}
+              warmupTicks={80}
+              cooldownTicks={120}
+              d3VelocityDecay={0.32}
+              linkColor={(link) => getLinkColor(link as GraphLink)}
+              linkOpacity={0.2}
+              linkDirectionalArrowLength={(link) => getLinkArrowLength(link as GraphLink)}
+              linkDirectionalArrowRelPos={1}
+              linkDirectionalArrowColor={(link) => getLinkColor(link as GraphLink)}
+              linkDirectionalParticles={(link) => (isLinkHighlighted(link as GraphLink, highlightedIds) ? 3 : 0)}
+              linkDirectionalParticleColor={() => '#7eea4d'}
+              linkDirectionalParticleSpeed={0.005}
+              linkDirectionalParticleWidth={2.2}
+              linkWidth={(link) => getLinkWidth(link as GraphLink)}
+              nodeColor={(node) => getNodeColor(node as GraphNode)}
+              nodeLabel={(node) => (node as GraphNode).label}
+              nodeOpacity={0.94}
+              nodeRelSize={NODE_REL_SIZE}
+              nodeResolution={16}
+              nodeThreeObject={createThreeNode}
+              nodeVal={(node) => getNodeValue(node as GraphNode)}
+              onNodeClick={handleNodeClick}
+              onNodeHover={handleNodeHover}
+              onBackgroundClick={clearFocus}
+            />
+          ) : (
+            <ForceGraph2D
+              ref={graph2dRef}
+              graphData={graphData}
+              width={graphWidth}
+              height={graphHeight}
+              backgroundColor={GRAPH_BACKGROUND}
+              warmupTicks={80}
+              cooldownTicks={120}
+              d3VelocityDecay={0.28}
+              autoPauseRedraw={!isPlaying}
+              linkColor={(link) => getLinkColor(link as GraphLink)}
+              linkDirectionalArrowLength={(link) => getLinkArrowLength(link as GraphLink)}
+              linkDirectionalArrowRelPos={1}
+              linkDirectionalArrowColor={(link) => getLinkColor(link as GraphLink)}
+              linkDirectionalParticles={(link) => (isLinkHighlighted(link as GraphLink, highlightedIds) ? 3 : 0)}
+              linkDirectionalParticleColor={() => '#67e8f9'}
+              linkDirectionalParticleSpeed={0.006}
+              linkDirectionalParticleWidth={2.2}
+              linkWidth={(link) => getLinkWidth(link as GraphLink)}
+              nodeCanvasObject={drawNode2d}
+              nodeCanvasObjectMode={() => 'replace'}
+              nodePointerAreaPaint={paintNodePointerArea}
+              nodeRelSize={NODE_REL_SIZE}
+              nodeVal={(node) => getNodeValue(node as GraphNode)}
+              onNodeClick={handleNodeClick}
+              onNodeHover={handleNodeHover}
+              onBackgroundClick={clearFocus}
+            />
+          )
         ) : (
-          <ForceGraph2D
-            graphData={graphData}
-            width={graphWidth}
-            height={graphHeight}
-            backgroundColor={GRAPH_BACKGROUND}
-            warmupTicks={80}
-            cooldownTicks={120}
-            d3VelocityDecay={0.28}
-            autoPauseRedraw={!isPlaying}
-            linkColor={(link) => getLinkColor(link as GraphLink)}
-            linkDirectionalParticles={(link) => (isLinkHighlighted(link as GraphLink, highlightedIds) ? 3 : 0)}
-            linkDirectionalParticleColor={() => '#67e8f9'}
-            linkDirectionalParticleSpeed={0.006}
-            linkDirectionalParticleWidth={2.2}
-            linkWidth={(link) => getLinkWidth(link as GraphLink)}
-            nodeCanvasObject={drawNode2d}
-            nodeCanvasObjectMode={() => 'replace'}
-            nodePointerAreaPaint={paintNodePointerArea}
-            nodeRelSize={NODE_REL_SIZE}
-            nodeVal={(node) => getNodeValue(node as GraphNode)}
-            onNodeClick={handleNodeClick}
-            onNodeHover={handleNodeHover}
-            onBackgroundClick={clearFocus}
-          />
-        )
-      ) : (
-        <div className="relative z-10 grid h-full min-h-[420px] place-items-center px-6 text-center">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-100">No graph snapshot loaded</h2>
-            <p className="mt-2 max-w-md text-sm text-slate-400">
-              Start the API, pick a tenant, and move the temporal slider to query a point-in-time topology.
-            </p>
+          <div className="relative z-10 grid h-full min-h-[420px] place-items-center px-6 text-center">
+            <div>
+              <h2 className="text-xl font-semibold text-slate-100">No graph snapshot loaded</h2>
+              <p className="mt-2 max-w-md text-sm text-slate-400">
+                Start the API, pick a tenant, and move the temporal slider to query a point-in-time topology.
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+
+      {isFullscreen && timeRange && selectedTime !== null && onTimeChange ? (
+        <FullscreenPlayback
+          range={timeRange}
+          value={selectedTime}
+          onChange={onTimeChange}
+          isPlaying={isPlaying}
+          onPlayingChange={onPlayingChange}
+          speed={playbackSpeed}
+          onSpeedChange={onPlaybackSpeedChange}
+          disabled={graphData.nodes.length === 0 || loading}
+        />
+      ) : null}
 
       {selectedNode ? <NodeDetail node={selectedNode} onClose={handleCloseDetail} /> : null}
     </section>
   )
 }
 
-function useElementSize(ref: React.RefObject<HTMLElement | null>) {
+function FullscreenPlayback({
+  range,
+  value,
+  onChange,
+  isPlaying,
+  onPlayingChange,
+  speed,
+  onSpeedChange,
+  disabled = false,
+}: {
+  range: TimeRange
+  value: number
+  onChange: (timestamp: number) => void
+  isPlaying: boolean
+  onPlayingChange?: (playing: boolean) => void
+  speed: number
+  onSpeedChange?: (speed: number) => void
+  disabled?: boolean
+}) {
+  const min = Math.floor(range.min)
+  const max = Math.ceil(range.max)
+  const step = Math.max(3600, Math.floor((range.max - range.min) / 160))
+  const sliderValue = Math.round(value)
+
+  return (
+    <div className="absolute bottom-4 left-4 z-10 w-[min(24rem,calc(100%-2rem))] rounded-2xl border border-slate-800/90 bg-slate-950/85 p-3 shadow-xl shadow-slate-950/60 backdrop-blur">
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          className="shrink-0 rounded-full border border-cyan-400/40 bg-slate-950/80 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-cyan-200 transition hover:border-cyan-300 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50"
+          onClick={() => onPlayingChange?.(!isPlaying)}
+          disabled={!onPlayingChange || disabled}
+        >
+          {isPlaying ? 'Pause' : 'Play'}
+        </button>
+        <div className="min-w-0 flex-1">
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-slate-500">Point In Time</p>
+          <p className="truncate text-sm font-semibold text-slate-100">{formatPlaybackTimestamp(value)}</p>
+        </div>
+        <div className="flex shrink-0 rounded-full border border-slate-700 bg-slate-950/70 p-0.5">
+          {SPEED_PRESETS.map((preset) => {
+            const isActive = preset === speed
+
+            return (
+              <button
+                key={preset}
+                type="button"
+                className={`rounded-full px-2 py-0.5 text-[0.7rem] font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                  isActive ? 'bg-cyan-300 text-slate-950' : 'text-slate-400 hover:bg-slate-800 hover:text-cyan-200'
+                }`}
+                onClick={() => onSpeedChange?.(preset)}
+                disabled={!onSpeedChange || disabled}
+              >
+                {formatSpeedLabel(preset)}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+      <input
+        className="mt-2 h-1.5 w-full cursor-pointer accent-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={sliderValue}
+        onChange={(event) => onChange(Number(event.target.value))}
+        disabled={disabled}
+      />
+    </div>
+  )
+}
+
+function formatPlaybackTimestamp(timestamp: number) {
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(timestamp * 1000))
+}
+
+function useElementSize(ref: React.RefObject<HTMLDivElement | null>) {
   const [size, setSize] = useState({ width: MIN_GRAPH_WIDTH, height: MIN_GRAPH_HEIGHT })
 
   useEffect(() => {
