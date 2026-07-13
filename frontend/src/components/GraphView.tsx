@@ -21,6 +21,7 @@ type GraphViewProps = {
   onTimeChange?: (timestamp: number) => void
   playbackSpeed?: number
   onPlaybackSpeedChange?: (speed: number) => void
+  label?: string
 }
 
 type ViewMode = '2d' | '3d'
@@ -65,6 +66,7 @@ export function GraphView({
   onTimeChange,
   playbackSpeed = 1,
   onPlaybackSpeedChange,
+  label,
 }: GraphViewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const graph2dRef = useRef<ForceGraph2DMethods<GraphNode, GraphLink> | undefined>(undefined)
@@ -93,6 +95,7 @@ export function GraphView({
   }, [graphData.nodes, selectedTenantIds])
   const hasFocus = focusNodeId !== null
   const shouldColorByTenant = graphTenantIds.length > 1
+  const badgeTimestamp = graph?.timestamp ?? selectedTime
   const graphWidth = Math.max(width, MIN_GRAPH_WIDTH)
   const graphHeight = Math.max(height, MIN_GRAPH_HEIGHT)
 
@@ -384,7 +387,17 @@ export function GraphView({
     >
       <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_20%_15%,rgba(34,211,238,0.12),transparent_28rem),radial-gradient(circle_at_80%_75%,rgba(192,132,252,0.12),transparent_24rem)]" />
       <div className="absolute left-4 top-4 z-10 max-w-[calc(100%-2rem)] rounded-2xl border border-slate-800/90 bg-slate-950/80 p-4 shadow-xl shadow-slate-950/60 backdrop-blur">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Snapshot</p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Snapshot</p>
+          {label ? (
+            <span className="rounded-full border border-cyan-400/40 px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-wide text-cyan-200">
+              {label}
+            </span>
+          ) : null}
+        </div>
+        {badgeTimestamp !== null ? (
+          <p className="mt-2 text-sm font-semibold text-cyan-200">{formatPlaybackTimestamp(badgeTimestamp)}</p>
+        ) : null}
         <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
           <Metric label="Devices" value={graph?.counts.devices ?? 0} color="text-cyan-300" />
           <Metric label="Software" value={graph?.counts.software ?? 0} color="text-violet-300" />
