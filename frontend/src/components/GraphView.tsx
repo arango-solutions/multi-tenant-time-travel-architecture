@@ -22,6 +22,8 @@ type GraphViewProps = {
   playbackSpeed?: number
   onPlaybackSpeedChange?: (speed: number) => void
   label?: string
+  onToggleCompare?: () => void
+  compareDisabled?: boolean
 }
 
 type ViewMode = '2d' | '3d'
@@ -67,6 +69,8 @@ export function GraphView({
   playbackSpeed = 1,
   onPlaybackSpeedChange,
   label,
+  onToggleCompare,
+  compareDisabled = false,
 }: GraphViewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const graph2dRef = useRef<ForceGraph2DMethods<GraphNode, GraphLink> | undefined>(undefined)
@@ -422,6 +426,16 @@ export function GraphView({
       </div>
 
       <div className="absolute right-4 top-4 z-10 flex flex-wrap justify-end gap-2">
+        {onToggleCompare ? (
+          <button
+            type="button"
+            className="rounded-full border border-violet-400/40 bg-slate-950/80 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-violet-200 shadow-xl backdrop-blur transition hover:border-violet-300 hover:bg-violet-400/10 disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={onToggleCompare}
+            disabled={compareDisabled}
+          >
+            Compare
+          </button>
+        ) : null}
         <button
           type="button"
           className="rounded-full border border-cyan-400/40 bg-slate-950/80 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-cyan-200 shadow-xl backdrop-blur transition hover:border-cyan-300 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50"

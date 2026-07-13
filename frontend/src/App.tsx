@@ -150,20 +150,6 @@ function App() {
                 <span className="text-slate-400">
                   {session.username} @ {session.endpoint}
                 </span>
-                {selectedDatabaseName ? (
-                  <button
-                    className={`rounded-full border px-3 py-1 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                      compareMode
-                        ? 'border-cyan-300 bg-cyan-400/10 text-cyan-100'
-                        : 'border-slate-700 text-slate-200 hover:border-cyan-300 hover:text-cyan-200'
-                    }`}
-                    type="button"
-                    onClick={handleToggleCompare}
-                    disabled={!canCompare}
-                  >
-                    {compareMode ? 'Exit compare' : 'Compare'}
-                  </button>
-                ) : null}
                 <button
                   className="rounded-full border border-slate-700 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-rose-300 hover:text-rose-200"
                   type="button"
@@ -186,17 +172,32 @@ function App() {
           <LoginForm onSubmit={handleLogin} loading={loadingLogin} />
         ) : compareMode ? (
           <div className="flex flex-1 flex-col gap-4 lg:overflow-hidden">
-            <div className="lg:max-w-md">
-              <DatabaseSelect
-                databases={databases}
-                selectedDatabaseName={selectedDatabaseName}
-                onChange={(databaseName) => void handleDatabaseChange(databaseName)}
-                disabled={loadingDatabases}
-              />
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch sm:justify-between">
+              <div className="sm:max-w-md sm:flex-1">
+                <DatabaseSelect
+                  databases={databases}
+                  selectedDatabaseName={selectedDatabaseName}
+                  onChange={(databaseName) => void handleDatabaseChange(databaseName)}
+                  disabled={loadingDatabases}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-3 sm:min-w-[19rem]">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">Compare mode</p>
+                  <p className="mt-1 text-xs text-slate-400">Two independent snapshots</p>
+                </div>
+                <button
+                  type="button"
+                  className="shrink-0 rounded-full border border-slate-700 px-4 py-2 text-xs font-semibold text-slate-200 transition hover:border-rose-300 hover:text-rose-200"
+                  onClick={handleToggleCompare}
+                >
+                  Exit compare
+                </button>
+              </div>
             </div>
             <div className="grid flex-1 gap-4 lg:grid-cols-2 lg:overflow-hidden">
-              <GraphPane label="View A" tenants={tenants} pane={paneA} tenantsLoading={loadingTenants} />
-              <GraphPane label="View B" tenants={tenants} pane={paneB} tenantsLoading={loadingTenants} />
+              <GraphPane label="View A" accent="cyan" tenants={tenants} pane={paneA} tenantsLoading={loadingTenants} />
+              <GraphPane label="View B" accent="violet" tenants={tenants} pane={paneB} tenantsLoading={loadingTenants} />
             </div>
           </div>
         ) : (
@@ -275,6 +276,8 @@ function App() {
                   onTimeChange={paneA.setSelectedTime}
                   playbackSpeed={paneA.playbackSpeed}
                   onPlaybackSpeedChange={paneA.setPlaybackSpeed}
+                  onToggleCompare={handleToggleCompare}
+                  compareDisabled={!canCompare}
                 />
               ) : (
                 <section className="grid min-h-[520px] place-items-center rounded-3xl border border-slate-800 bg-slate-950/70 px-6 text-center lg:min-h-full">
